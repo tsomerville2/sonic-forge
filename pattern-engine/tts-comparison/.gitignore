@@ -1,0 +1,6 @@
+*.wav
+*.onnx
+*.bin
+kokoro-models/
+chattts-assets/
+__pycache__/

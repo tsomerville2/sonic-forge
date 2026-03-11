@@ -1,0 +1,27 @@
+# Audio (generated on demand)
+*.wav
+*.aiff
+*.mp3
+*.ogg
+
+# Models (downloaded on first use)
+*.onnx
+*.bin
+*.safetensors
+kokoro-models/
+chattts-assets/
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
