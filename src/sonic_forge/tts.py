@@ -193,7 +193,8 @@ def _apply_fx(wav_path, effect_name):
     processed = fx_func(data_int, sr)
 
     out_path = wav_path.replace(".wav", f"_{effect_name}.wav")
-    sf.write(out_path, processed.astype(np.float64) / 32767.0, sr)
+    # robotize functions return normalized floats (-1.0 to 1.0), write directly
+    sf.write(out_path, processed.astype(np.float64), sr)
 
     # Clean up original, return processed
     os.remove(wav_path)
