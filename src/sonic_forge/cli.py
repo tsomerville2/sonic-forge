@@ -25,6 +25,7 @@ def render_cmd(
     template: Optional[str] = typer.Option(None, "--template", help="Apply genre template."),
     lead: Optional[float] = typer.Option(None, "--lead", help="Voiceover lead time (seconds)."),
     rate: Optional[int] = typer.Option(None, "--rate", help="Speech rate (WPM)."),
+    voice_stem: Optional[str] = typer.Option(None, "--voice-stem", help="Save voice-only WAV (for lip sync)."),
 ) -> None:
     """Render a YAML song to WAV.
 
@@ -37,7 +38,7 @@ def render_cmd(
         song, output_path=output, play=play,
         voice_override=voice, template_name=template,
         lead_override=lead, speech_rate=rate,
-        engine=engine, fx=fx,
+        engine=engine, fx=fx, voice_stem=voice_stem,
     )
 
 

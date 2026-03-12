@@ -205,11 +205,12 @@ def _normalize_wav(wav_path):
 
 
 def mix_voiceover(music_path, voiceovers, output_path, voice="Samantha",
-                  speech_rate=None, engine=None, fx=None):
+                  speech_rate=None, engine=None, fx=None, voice_stem=None):
     """Mix speech clips into music at specific timestamps.
 
     engine: TTS engine ("say", "kokoro"). Auto-detected from voice if omitted.
     fx: Robot effect to apply to all voiceovers.
+    voice_stem: If set, save voice-only WAV to this path (for lip sync analysis).
     """
     tmp_dir = os.path.dirname(output_path) or "."
 
@@ -217,6 +218,10 @@ def mix_voiceover(music_path, voiceovers, output_path, voice="Samantha",
         n_frames = wf.getnframes()
         rate = wf.getframerate()
         music_data = array.array("h", wf.readframes(n_frames))
+
+    # Voice-only stem: same length as music, zeroed out
+    if voice_stem:
+        voice_data = array.array("h", [0] * len(music_data))
 
     for i, (t_sec, text) in enumerate(voiceovers):
         speech_wav = os.path.join(tmp_dir, f"_vo_{i}.wav")
@@ -232,6 +237,8 @@ def mix_voiceover(music_path, voiceovers, output_path, voice="Samantha",
             if idx < len(music_data):
                 mixed = music_data[idx] + int(sample * 0.8)
                 music_data[idx] = max(-32768, min(32767, mixed))
+                if voice_stem:
+                    voice_data[idx] = sample
 
         os.remove(speech_wav)
 
@@ -241,15 +248,24 @@ def mix_voiceover(music_path, voiceovers, output_path, voice="Samantha",
         wf.setframerate(rate)
         wf.writeframes(music_data.tobytes())
 
+    if voice_stem:
+        with wave.open(voice_stem, "w") as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(rate)
+            wf.writeframes(voice_data.tobytes())
+
 
 def render_yaml_song(yaml_path, output_path=None, play=False,
                      voice_override=None, lead_override=None,
                      target_duration=None, speech_rate=None,
-                     template_name=None, engine=None, fx=None):
+                     template_name=None, engine=None, fx=None,
+                     voice_stem=None):
     """Full pipeline: YAML -> music WAV -> mix voiceovers -> final WAV.
 
     engine: TTS engine for voiceovers ("say", "kokoro"). Auto-detected from voice.
     fx: Robot effect for voiceovers (helmet, intercom, droid, etc.).
+    voice_stem: If set, save voice-only WAV to this path (for lip sync).
     """
 
     if template_name:
@@ -356,7 +372,7 @@ def render_yaml_song(yaml_path, output_path=None, play=False,
         print(f"  Mixing {n_voices} voiceovers (voice: {song['voice']}{engine_info}{fx_info}{rate_info})...")
         mix_voiceover(output_path, song["voiceovers"], output_path,
                       voice=song["voice"], speech_rate=speech_rate,
-                      engine=engine, fx=fx)
+                      engine=engine, fx=fx, voice_stem=voice_stem)
 
     mins = int(dur) // 60
     secs = int(dur) % 60

@@ -1,3 +1,3 @@
 """sonic-forge — bytebeat music DSL + multi-engine TTS voice system."""
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
