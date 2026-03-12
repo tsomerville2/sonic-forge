@@ -29,8 +29,8 @@ def render_cmd(
     sonic-forge render song.yaml --play
     sonic-forge render song.yaml --voice Daniel --template lofi
     """
-    from sonic_forge.songfile import render_from_yaml
-    render_from_yaml(
+    from sonic_forge.songfile import render_yaml_song
+    render_yaml_song(
         song, output_path=output, play=play,
         voice_override=voice, template_name=template,
         lead_override=lead, speech_rate=rate,
@@ -57,6 +57,28 @@ def robotize_cmd(
     """
     from sonic_forge.robotize import robotize_file
     robotize_file(input_wav, output_dir=output_dir, effects=effects)
+
+
+@app.command("speak")
+def speak_cmd(
+    text: str = typer.Argument(..., help="Text to speak aloud."),
+    voice: Optional[str] = typer.Option(None, "--voice", "-v", help="Voice name (af_heart, Samantha, Zarvox...)."),
+    engine: Optional[str] = typer.Option(None, "--engine", "-e", help="TTS engine: say, kokoro."),
+    fx: Optional[str] = typer.Option(None, "--fx", help="Robot effect: helmet, intercom, droid, ringmod, bitcrush."),
+    rate: Optional[int] = typer.Option(None, "--rate", help="Speech rate in WPM (macOS say)."),
+    output: Optional[str] = typer.Option(None, "-o", "--output", help="Save WAV to this path."),
+    no_play: bool = typer.Option(False, "--no-play", help="Generate only, don't play."),
+) -> None:
+    """Speak text aloud using macOS say or Kokoro TTS.
+
+    sonic-forge speak "Hello world"
+    sonic-forge speak "Incoming transmission" --engine kokoro --voice af_heart
+    sonic-forge speak "Captain on deck" --fx helmet
+    sonic-forge speak "Warning" --voice Zarvox --fx intercom
+    """
+    from sonic_forge.tts import speak
+    speak(text, engine=engine, voice=voice, rate=rate, fx=fx,
+          output_path=output, play=not no_play)
 
 
 if __name__ == "__main__":
