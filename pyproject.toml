@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sonic-forge"
+version = "0.1.0"
+description = "Bytebeat music DSL + multi-engine TTS voice system — beamed from starforge"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml",
+    "typer",
+]
+
+[project.optional-dependencies]
+kokoro = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy"]
+tts = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy", "f5-tts-mlx"]
+robot = ["soundfile", "numpy"]
+all = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy", "f5-tts-mlx"]
+
+[project.scripts]
+sonic-forge = "sonic_forge.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sonic_forge"]
