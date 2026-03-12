@@ -256,14 +256,16 @@ def render_yaml_song(yaml_path, output_path=None, play=False,
         # Template mode: extract narration texts from YAML, apply template
         with open(yaml_path) as f:
             doc = yaml.safe_load(f)
-        texts = [sec["say"] for sec in doc.get("sections", []) if sec.get("say")]
+        yaml_sections = [sec for sec in doc.get("sections", []) if sec.get("say")]
+        texts = [sec["say"] for sec in yaml_sections]
+        yaml_cycles = [sec.get("cycles") for sec in yaml_sections]
         tmpl_song = apply_template(template_name, texts)
 
         # Now parse the template output the same way as a regular song
         title = doc.get("title", tmpl_song["title"])
         bpm = tmpl_song["bpm"]
-        voice = voice_override or tmpl_song["voice"]
-        voice_lead = lead_override if lead_override is not None else tmpl_song["voice_lead"]
+        voice = voice_override or doc.get("voice") or tmpl_song["voice"]
+        voice_lead = lead_override if lead_override is not None else doc.get("voice_lead", tmpl_song["voice_lead"])
         cycle_dur = (60.0 / bpm) * 4
 
         # Scale if target_duration set
@@ -278,8 +280,12 @@ def render_yaml_song(yaml_path, output_path=None, play=False,
         sections = []
         voiceovers = []
         time_cursor = 0.0
-        for sec in raw_sections:
-            raw_cycles = sec.get("cycles", 4)
+        for idx, sec in enumerate(raw_sections):
+            # YAML cycles override template cycles when specified
+            if idx < len(yaml_cycles) and yaml_cycles[idx] is not None:
+                raw_cycles = yaml_cycles[idx]
+            else:
+                raw_cycles = sec.get("cycles", 4)
             cycles = max(1, round(raw_cycles * scale))
             patterns = [parse_layer(l) for l in sec.get("layers", [])]
             pattern = stack(*patterns) if len(patterns) > 1 else patterns[0]
