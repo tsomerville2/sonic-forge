@@ -13,7 +13,9 @@ Usage:
 YAML format:
     title: my song
     bpm: 136
-    voice: Samantha          # macOS say voice (optional)
+    voice: Samantha          # macOS say voice, or kokoro voice like af_heart
+    engine: kokoro           # TTS engine: say (default), kokoro
+    fx: helmet               # robot effect: helmet, intercom, droid, ringmod, bitcrush
     voice_lead: 2.0          # seconds before change to start speaking
 
     sections:
@@ -74,6 +76,8 @@ def parse_song(yaml_path, target_duration=None, voice_lead_override=None):
     title = doc.get("title", "untitled")
     bpm = doc.get("bpm", 130)
     voice = doc.get("voice", "Samantha")
+    engine = doc.get("engine", None)
+    fx = doc.get("fx", None)
     voice_lead = voice_lead_override if voice_lead_override is not None else doc.get("voice_lead", 2.0)
 
     cycle_dur = (60.0 / bpm) * 4  # 4 beats per cycle
@@ -118,6 +122,8 @@ def parse_song(yaml_path, target_duration=None, voice_lead_override=None):
         "title": title,
         "bpm": bpm,
         "voice": voice,
+        "engine": engine,
+        "fx": fx,
         "voice_lead": voice_lead,
         "sections": sections,
         "voiceovers": voiceovers,
@@ -125,26 +131,86 @@ def parse_song(yaml_path, target_duration=None, voice_lead_override=None):
     }
 
 
-def generate_speech(text, wav_path, voice="Samantha", rate=None):
-    """Use macOS say to generate speech WAV at 44100Hz mono.
+def generate_speech(text, wav_path, voice="Samantha", rate=None,
+                    engine=None, fx=None):
+    """Generate speech WAV at 44100Hz mono via any supported TTS engine.
 
-    rate: words per minute. Default ~175. Use 220-280 for fast/condensed.
+    engine: "say" (macOS, default), "kokoro" (Kokoro-82M ONNX).
+           Auto-detected from voice name if omitted.
+    fx: Robot effect to apply: helmet, intercom, droid, ringmod, bitcrush.
+    rate: words per minute (macOS say only).
     """
-    aiff_path = wav_path + ".aiff"
-    cmd = ["say", "-v", voice, "-o", aiff_path]
-    if rate:
-        cmd.extend(["-r", str(int(rate))])
-    cmd.append(text)
-    subprocess.run(cmd, check=True, capture_output=True)
-    subprocess.run(["afconvert", "-f", "WAVE", "-d", "LEI16@44100",
-                    aiff_path, wav_path],
-                   check=True, capture_output=True)
-    os.remove(aiff_path)
+    from sonic_forge.tts import generate_to_wav, _apply_fx, _detect_engine
+
+    if not engine:
+        engine = _detect_engine(voice)
+
+    generate_to_wav(text, wav_path, engine=engine, voice=voice, rate=rate)
+
+    # Apply robot FX if requested
+    if fx:
+        processed_path = _apply_fx(wav_path, fx)
+        # _apply_fx deletes original and returns new path with _fx suffix
+        # We need the result at wav_path for the mixer, so rename back
+        os.rename(processed_path, wav_path)
+
+    # Ensure 44100Hz mono 16-bit for mixing (kokoro may output different format)
+    if engine != "say":
+        _normalize_wav(wav_path)
+
+
+def _normalize_wav(wav_path):
+    """Ensure WAV is 44100Hz mono 16-bit PCM for mixing compatibility."""
+    with wave.open(wav_path, "r") as wf:
+        sr = wf.getframerate()
+        nch = wf.getnchannels()
+        sw = wf.getsampwidth()
+        data = wf.readframes(wf.getnframes())
+
+    if sr == 44100 and nch == 1 and sw == 2:
+        return  # already correct format
+
+    # Read raw samples
+    samples = array.array("h", data)
+
+    # Stereo to mono
+    if nch == 2:
+        mono = array.array("h")
+        for i in range(0, len(samples), 2):
+            mono.append((samples[i] + samples[i + 1]) // 2)
+        samples = mono
+
+    # Resample if needed (simple linear interpolation)
+    if sr != 44100:
+        ratio = 44100 / sr
+        n = len(samples)
+        new_n = int(n * ratio)
+        resampled = array.array("h")
+        for i in range(new_n):
+            src = i / ratio
+            idx = int(src)
+            frac = src - idx
+            if idx + 1 < n:
+                val = int(samples[idx] * (1 - frac) + samples[idx + 1] * frac)
+            else:
+                val = samples[min(idx, n - 1)]
+            resampled.append(max(-32768, min(32767, val)))
+        samples = resampled
+
+    with wave.open(wav_path, "w") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(44100)
+        wf.writeframes(samples.tobytes())
 
 
 def mix_voiceover(music_path, voiceovers, output_path, voice="Samantha",
-                  speech_rate=None):
-    """Mix speech clips into music at specific timestamps."""
+                  speech_rate=None, engine=None, fx=None):
+    """Mix speech clips into music at specific timestamps.
+
+    engine: TTS engine ("say", "kokoro"). Auto-detected from voice if omitted.
+    fx: Robot effect to apply to all voiceovers.
+    """
     tmp_dir = os.path.dirname(output_path) or "."
 
     with wave.open(music_path, "r") as wf:
@@ -154,7 +220,8 @@ def mix_voiceover(music_path, voiceovers, output_path, voice="Samantha",
 
     for i, (t_sec, text) in enumerate(voiceovers):
         speech_wav = os.path.join(tmp_dir, f"_vo_{i}.wav")
-        generate_speech(text, speech_wav, voice=voice, rate=speech_rate)
+        generate_speech(text, speech_wav, voice=voice, rate=speech_rate,
+                        engine=engine, fx=fx)
 
         with wave.open(speech_wav, "r") as sf:
             speech_data = array.array("h", sf.readframes(sf.getnframes()))
@@ -178,8 +245,12 @@ def mix_voiceover(music_path, voiceovers, output_path, voice="Samantha",
 def render_yaml_song(yaml_path, output_path=None, play=False,
                      voice_override=None, lead_override=None,
                      target_duration=None, speech_rate=None,
-                     template_name=None):
-    """Full pipeline: YAML -> music WAV -> mix voiceovers -> final WAV."""
+                     template_name=None, engine=None, fx=None):
+    """Full pipeline: YAML -> music WAV -> mix voiceovers -> final WAV.
+
+    engine: TTS engine for voiceovers ("say", "kokoro"). Auto-detected from voice.
+    fx: Robot effect for voiceovers (helmet, intercom, droid, etc.).
+    """
 
     if template_name:
         # Template mode: extract narration texts from YAML, apply template
@@ -234,6 +305,10 @@ def render_yaml_song(yaml_path, output_path=None, play=False,
     if voice_override:
         song["voice"] = voice_override
 
+    # Resolve engine/fx: CLI flags override YAML fields
+    engine = engine or song.get("engine")
+    fx = fx or song.get("fx")
+
     if not output_path:
         output_path = yaml_path.rsplit(".", 1)[0] + ".wav"
 
@@ -269,10 +344,13 @@ def render_yaml_song(yaml_path, output_path=None, play=False,
 
     # Mix voiceovers
     if song["voiceovers"]:
+        engine_info = f", engine: {engine}" if engine else ""
+        fx_info = f", fx: {fx}" if fx else ""
         rate_info = f", {speech_rate} WPM" if speech_rate else ""
-        print(f"  Mixing {n_voices} voiceovers (voice: {song['voice']}{rate_info})...")
+        print(f"  Mixing {n_voices} voiceovers (voice: {song['voice']}{engine_info}{fx_info}{rate_info})...")
         mix_voiceover(output_path, song["voiceovers"], output_path,
-                      voice=song["voice"], speech_rate=speech_rate)
+                      voice=song["voice"], speech_rate=speech_rate,
+                      engine=engine, fx=fx)
 
     mins = int(dur) // 60
     secs = int(dur) % 60
@@ -304,6 +382,10 @@ if __name__ == "__main__":
                         help="Apply a genre template (trance, lofi, cinematic, ambient, acid, hiphop, minimal, anthem)")
     parser.add_argument("--templates", action="store_true",
                         help="List available templates")
+    parser.add_argument("--engine", default=None,
+                        help="TTS engine: say (macOS), kokoro (Kokoro-82M ONNX)")
+    parser.add_argument("--fx", default=None,
+                        help="Robot effect for voiceovers: helmet, intercom, droid, ringmod, bitcrush")
     parser.add_argument("-o", "--output", default=None, help="Output WAV path")
 
     args = parser.parse_args()
@@ -329,4 +411,6 @@ if __name__ == "__main__":
         target_duration=args.duration,
         speech_rate=args.rate,
         template_name=args.template,
+        engine=args.engine,
+        fx=args.fx,
     )

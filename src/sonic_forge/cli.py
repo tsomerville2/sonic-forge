@@ -19,7 +19,9 @@ def render_cmd(
     song: str = typer.Argument(..., help="YAML song file to render."),
     output: Optional[str] = typer.Option(None, "-o", "--output", help="Output WAV path."),
     play: bool = typer.Option(False, "--play", help="Play after rendering."),
-    voice: Optional[str] = typer.Option(None, "--voice", help="TTS voice name."),
+    voice: Optional[str] = typer.Option(None, "--voice", help="TTS voice name (Samantha, af_heart, Zarvox...)."),
+    engine: Optional[str] = typer.Option(None, "--engine", help="TTS engine: say (macOS), kokoro (Kokoro-82M)."),
+    fx: Optional[str] = typer.Option(None, "--fx", help="Robot effect: helmet, intercom, droid, ringmod, bitcrush."),
     template: Optional[str] = typer.Option(None, "--template", help="Apply genre template."),
     lead: Optional[float] = typer.Option(None, "--lead", help="Voiceover lead time (seconds)."),
     rate: Optional[int] = typer.Option(None, "--rate", help="Speech rate (WPM)."),
@@ -27,13 +29,15 @@ def render_cmd(
     """Render a YAML song to WAV.
 
     sonic-forge render song.yaml --play
-    sonic-forge render song.yaml --voice Daniel --template lofi
+    sonic-forge render song.yaml --voice af_heart --engine kokoro --fx helmet --play
+    sonic-forge render song.yaml --voice Daniel --template lofi --play
     """
     from sonic_forge.songfile import render_yaml_song
     render_yaml_song(
         song, output_path=output, play=play,
         voice_override=voice, template_name=template,
         lead_override=lead, speech_rate=rate,
+        engine=engine, fx=fx,
     )
 
 
