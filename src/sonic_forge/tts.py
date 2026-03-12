@@ -41,6 +41,30 @@ def _say_to_wav(text, wav_path, voice="Samantha", rate=None):
 
 _kokoro_instance = None
 
+_KOKORO_MODEL_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx"
+_KOKORO_VOICES_URL = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin"
+
+
+def _download_kokoro_models():
+    """Auto-download Kokoro ONNX model files on first use."""
+    from urllib.request import urlretrieve
+
+    dest = os.path.expanduser("~/.starforge/models/kokoro")
+    os.makedirs(dest, exist_ok=True)
+    model_path = os.path.join(dest, "kokoro-v1.0.onnx")
+    voices_path = os.path.join(dest, "voices-v1.0.bin")
+
+    for url, path, label in [
+        (_KOKORO_MODEL_URL, model_path, "kokoro-v1.0.onnx (~37 MB)"),
+        (_KOKORO_VOICES_URL, voices_path, "voices-v1.0.bin (~43 MB)"),
+    ]:
+        if not os.path.exists(path):
+            print(f"  Downloading {label}...")
+            urlretrieve(url, path)
+            print(f"  Saved to {path}")
+
+    return model_path, voices_path
+
 
 def _get_kokoro():
     """Lazy-load Kokoro model (singleton)."""
@@ -71,10 +95,8 @@ def _get_kokoro():
             break
 
     if not model_path:
-        raise FileNotFoundError(
-            "Kokoro model not found. Download kokoro-v1.0.onnx and voices-v1.0.bin to "
-            "~/.starforge/models/kokoro/"
-        )
+        # Auto-download from Hugging Face
+        model_path, voices_path = _download_kokoro_models()
 
     _kokoro_instance = kokoro_onnx.Kokoro(model_path, voices_path)
     return _kokoro_instance
