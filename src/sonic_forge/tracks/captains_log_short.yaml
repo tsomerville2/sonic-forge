@@ -1,0 +1,86 @@
+# Captain's log — the short mix
+title: the captain's log
+bpm: 124
+voice: Alex
+voice_lead: 1.5
+
+sections:
+  - say: "captain's log"
+    cycles: 3
+    layers:
+      - synth: pad
+        notes: g2 d3 g3
+
+  - say: "clone detection. ten thousand clones across seventy two repos."
+    cycles: 3
+    layers:
+      - synth: pad
+        notes: g2 d3 g3
+      - synth: pluck
+        notes: g3 bb3 d4 g4
+        fast: 8
+      - synth: bass
+        notes: g1
+        fast: 4
+      - mini: "bd*4"
+
+  - say: "semantic grouping. polyglot tokens."
+    cycles: 3
+    layers:
+      - synth: acid
+        notes: g2 bb2 d3 g3 d3 bb2
+        fast: 12
+      - synth: pad
+        notes: eb2 g2 bb2
+      - synth: bass
+        notes: eb1
+        fast: 4
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh"
+
+  - say: "four sound systems evaluated. they said tidal was too rigid. they were wrong."
+    cycles: 4
+    layers:
+      - synth: acid
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: bass
+        notes: g1
+        fast: 4
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+
+  - say: "we followed switch angel. five notes became a world."
+    cycles: 5
+    layers:
+      - synth: acid
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pluck
+        notes: g4 bb4 d5 bb4
+        fast: 8
+      - synth: bass
+        notes: g1
+        fast: 16
+      - synth: pad
+        notes: g2 bb2 d3
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+      - mini: "oh*2"
+
+  - say: "the forge makes music now. end of log."
+    cycles: 3
+    layers:
+      - synth: pad
+        notes: g2 d3 g3
+      - synth: pluck
+        notes: g4 d4 bb3 d4
+        fast: 4

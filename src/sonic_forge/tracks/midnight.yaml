@@ -1,0 +1,88 @@
+# A moody midnight track — proving the YAML format works for any style
+title: midnight drive
+bpm: 110
+voice: Daniel
+voice_lead: 2.5
+
+sections:
+  - say: "the city sleeps, but we don't"
+    cycles: 8
+    layers:
+      - synth: pad
+        notes: c3 eb3 g3
+      - synth: pluck
+        notes: c4
+        fast: 2
+
+  - say: "headlights on, engine hums"
+    cycles: 8
+    layers:
+      - synth: pad
+        notes: c3 eb3 g3
+      - synth: bass
+        notes: c1
+        fast: 4
+      - mini: "bd*4"
+
+  - say: "rain on the windshield"
+    cycles: 8
+    layers:
+      - synth: pad
+        notes: ab2 c3 eb3
+      - synth: bass
+        notes: ab1
+        fast: 4
+      - synth: pluck
+        notes: eb4 g4 c5 g4
+        fast: 8
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh ~ hh ~ hh"
+
+  - say: "this is the part where the night opens up"
+    cycles: 12
+    layers:
+      - synth: pad
+        notes: c3 eb3 g3
+      - synth: acid
+        notes: c3 eb3 g3 c4 g3 eb3
+        fast: 12
+      - synth: bass
+        notes: c1
+        fast: 4
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ ~ cp ~"
+
+  - say: "full speed, no looking back"
+    cycles: 16
+    layers:
+      - synth: saw
+        notes: c3 eb3 g3 bb3 c4
+        fast: 16
+      - synth: acid
+        notes: c3 eb3 g3 c4 g3 eb3
+        fast: 12
+      - synth: bass
+        notes: c1 c1 ab0 ab0
+        fast: 8
+      - synth: pad
+        notes: c3 eb3 g3
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+      - mini: "cp(3,8)"
+
+  - say: "and then, slowly, the road fades"
+    cycles: 8
+    layers:
+      - synth: pad
+        notes: ab2 c3 eb3
+      - synth: pluck
+        notes: c4 eb4 g4 eb4
+        fast: 4
+
+  - say: "goodnight"
+    cycles: 4
+    layers:
+      - synth: pad
+        notes: c3 eb3 g3

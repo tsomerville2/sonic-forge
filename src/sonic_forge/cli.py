@@ -7,11 +7,47 @@ from typing import Optional
 
 import typer
 
+
 app = typer.Typer(
     name="sonic-forge",
     help="Sonic Forge — bytebeat music DSL + multi-engine TTS voice system.",
-    no_args_is_help=True,
+    invoke_without_command=True,
 )
+
+
+@app.callback()
+def main(ctx: typer.Context) -> None:
+    """Sonic Forge — bytebeat music DSL + multi-engine TTS voice system.
+
+    Run with no arguments for the interactive launcher.
+    """
+    if ctx.invoked_subcommand is None:
+        from sonic_forge.launcher import interactive_menu
+        interactive_menu()
+
+
+@app.command("play")
+def play_cmd(
+    name: str = typer.Argument(..., help="Track name (e.g. dark-space, midnight-drive, tpl-acid)."),
+    minutes: Optional[int] = typer.Option(None, "--minutes", "-m", help="Duration in minutes (ChucK: default 60, templates: default 3)."),
+) -> None:
+    """Play a built-in track by name.
+
+    sonic-forge play dark-space                 ChucK, plays 1 hour, Ctrl-C to stop
+    sonic-forge play dark-space -m 10           ChucK, 10 minutes
+    sonic-forge play tpl-acid                   Generate 3 min of acid house
+    sonic-forge play tpl-acid -m 10             Generate 10 min of acid house
+    sonic-forge play midnight-drive             Render and play the composed song
+    """
+    from sonic_forge.launcher import play_song
+    play_song(name, minutes=minutes)
+
+
+@app.command("catalog")
+def catalog_cmd() -> None:
+    """List all built-in tracks — songs, ChucK, templates."""
+    from sonic_forge.launcher import list_songs
+    list_songs()
 
 
 @app.command("render")

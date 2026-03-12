@@ -1,0 +1,87 @@
+title: starforge awakens
+bpm: 128
+voice: Alex
+voice_lead: 2.5
+
+sections:
+  - say: "a single pulse in the void"
+    cycles: 6
+    layers:
+      - synth: bass
+        notes: e1
+        fast: 4
+
+  - say: "something is forming"
+    cycles: 6
+    layers:
+      - synth: bass
+        notes: e1
+        fast: 4
+      - synth: pad
+        notes: e2 b2 e3
+
+  - say: "the forge ignites"
+    cycles: 8
+    layers:
+      - synth: acid
+        notes: e2 g2 b2 e3 b2 g2
+        fast: 12
+      - synth: bass
+        notes: e1
+        fast: 4
+      - mini: "bd*4"
+
+  - say: "sparks flying everywhere"
+    cycles: 8
+    layers:
+      - synth: acid
+        notes: e2 g2 b2 e3 b2 g2
+        fast: 12
+      - synth: pluck
+        notes: e4 b4 g4 e4
+        fast: 8
+      - synth: bass
+        notes: e1 e1 b0 b0
+        fast: 8
+      - synth: pad
+        notes: e2 b2 e3
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh ~ hh ~ hh"
+      - mini: "~ ~ cp ~"
+
+  - say: "the star is born"
+    cycles: 16
+    layers:
+      - synth: saw
+        notes: e2 g2 b2 e3 b2 g2
+        fast: 16
+      - synth: acid
+        notes: e2 g2 b2 e3 b2 g2
+        fast: 12
+      - synth: pluck
+        notes: e4 b4 g4 e4
+        fast: 8
+      - synth: bass
+        notes: e1
+        fast: 4
+      - synth: pad
+        notes: e2 b2 e3
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+      - mini: "cp(3,8)"
+
+  - say: "and now it breathes"
+    cycles: 8
+    layers:
+      - synth: pad
+        notes: e2 b2 e3
+      - synth: pluck
+        notes: e4 g4 b4 g4
+        fast: 4
+
+  - say: "the forge sleeps, but it remembers"
+    cycles: 4
+    layers:
+      - synth: pad
+        notes: e2 b2 e3

@@ -1,0 +1,88 @@
+# switch.angel live session — described in YAML
+# Each section = a moment where she changes the code live.
+# The converter turns this into a WAV with timed voiceovers.
+
+title: switch.angel session
+bpm: 136
+voice: Samantha
+voice_lead: 2.0   # seconds before each change to start speaking
+
+sections:
+  - say: "in the beginning, there were five notes"
+    cycles: 7
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+
+  - say: "now let's switch to sawtooth, with an acid envelope"
+    cycles: 3
+    layers:
+      - synth: acid
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+
+  - say: "here comes the kick drum, four on the floor"
+    cycles: 3
+    layers:
+      - synth: acid
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - mini: "bd*4"
+
+  - say: "adding some sidechain ducking"
+    cycles: 4
+    layers:
+      - synth: acid
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - mini: "bd*4"
+
+  - say: "and now, the bass enters, pulsing on the root"
+    cycles: 10
+    layers:
+      - synth: acid
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - mini: "bd*4"
+      - synth: acid
+        notes: g1
+        fast: 16
+
+  - say: "switching to supersaw, cranking the detune"
+    cycles: 10
+    layers:
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - mini: "bd*4"
+      - synth: saw
+        notes: g1
+        fast: 16
+
+  - say: "a little cymbal wash on top"
+    cycles: 10
+    layers:
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - mini: "bd*4"
+      - synth: saw
+        notes: g1
+        fast: 16
+      - mini: "oh*2"
+
+  - say: "now we crank both sliders up, full power, let it ride"
+    cycles: 20
+    layers:
+      - synth: acid
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - mini: "bd*4"
+      - synth: saw
+        notes: g1
+        fast: 16
+      - mini: "oh*2"

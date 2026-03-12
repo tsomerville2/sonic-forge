@@ -1,0 +1,141 @@
+# A song about the captain's log — the journey so far
+# Each section narrates a real discovery from the log entries
+
+title: the captain's log
+bpm: 124
+voice: Alex
+voice_lead: 2.5
+
+sections:
+  - say: "captain's log, stardate twenty twenty six point six eight"
+    cycles: 6
+    layers:
+      - synth: pad
+        notes: g2 d3 g3
+
+  - say: "we forged clone detection across seventy two repos. ten thousand clones found. the code remembers what we forgot."
+    cycles: 10
+    layers:
+      - synth: pad
+        notes: g2 d3 g3
+      - synth: pluck
+        notes: g3 bb3 d4 g4
+        fast: 8
+      - synth: bass
+        notes: g1
+        fast: 4
+
+  - say: "semantic grouping came next. six groups collapsed into two. the machine sees what humans missed."
+    cycles: 10
+    layers:
+      - synth: pad
+        notes: g2 d3 g3
+      - synth: pluck
+        notes: g3 bb3 d4 g4
+        fast: 8
+      - synth: bass
+        notes: g1
+        fast: 4
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh ~ hh ~ hh"
+
+  - say: "then polyglot tokens. ten languages clustered by shared vocabulary. the code has a language of its own."
+    cycles: 10
+    layers:
+      - synth: acid
+        notes: g2 bb2 d3 g3 d3 bb2
+        fast: 12
+      - synth: pad
+        notes: eb2 g2 bb2
+      - synth: bass
+        notes: eb1 eb1 g1 g1
+        fast: 8
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ ~ cp ~"
+
+  - say: "we evaluated four sound systems. bytebeat for chaos. chuck for drones. and then we found strudel."
+    cycles: 10
+    layers:
+      - synth: acid
+        notes: c2 eb2 f2 ab2 f2 eb2
+        fast: 16
+      - synth: saw
+        notes: c3 eb3 g3
+        fast: 4
+      - synth: bass
+        notes: c1
+        fast: 4
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+
+  - say: "everyone said tidal was too rigid. they were wrong. the rigidity was in how we thought about songs. not in the engine."
+    cycles: 12
+    layers:
+      - synth: acid
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: bass
+        notes: g1
+        fast: 4
+      - synth: pad
+        notes: g2 bb2 d3
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+      - mini: "cp(3,8)"
+
+  - say: "we followed switch angel screenshot by screenshot. five notes became a world. pluck became acid became supersaw."
+    cycles: 16
+    layers:
+      - synth: acid
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pluck
+        notes: g4 bb4 d5 bb4 g4
+        fast: 8
+      - synth: bass
+        notes: g1
+        fast: 16
+      - synth: pad
+        notes: g2 bb2 d3
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+      - mini: "cp(3,8)"
+      - mini: "oh*2"
+
+  - say: "and then. we taught the ship to sing about itself. a yaml file became a song. the forge makes music now."
+    cycles: 12
+    layers:
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pad
+        notes: g2 bb2 d3
+      - synth: pluck
+        notes: d5 g4 bb4 d5
+        fast: 4
+      - mini: "bd*4"
+
+  - say: "captain's log, supplemental. the star grows stronger. three sound engines. a hundred forty seven tools. and now, a voice."
+    cycles: 8
+    layers:
+      - synth: pad
+        notes: g2 d3 g3
+      - synth: pluck
+        notes: g4 d4 bb3 d4
+        fast: 4
+
+  - say: "end of log."
+    cycles: 4
+    layers:
+      - synth: pad
+        notes: g2 d3 g3
