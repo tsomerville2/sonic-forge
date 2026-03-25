@@ -1,0 +1,36 @@
+title: Starlight Dancers
+bpm: 135
+sections:
+  - say: "Dancing in the light of stars"
+    cycles: 3
+    layers:
+      - synth: pad
+        notes: c3 eb3 g3
+      - mini: "bd*4 ~ hh ~ hh"
+
+  - cycles: 3
+    layers:
+      - synth: acid
+        notes: c2 eb2 f2 eb2
+        fast: 8
+      - synth: bass
+        notes: c1 c1
+      - mini: "bd*4 sn ~ sn"
+
+  - say: "Wonder in every heartbeat"
+    cycles: 2
+    layers:
+      - synth: pluck
+        notes: g4 bb4 c5
+        fast: 16
+      - mini: "bd*4 ~ hh ~ hh"
+
+  - say: "Love echoes through the cosmos"
+    cycles: 3
+    layers:
+      - synth: saw
+        notes: c3 eb3 g3 c4
+        fast: 8
+      - synth: bass
+        notes: c1 eb1
+      - mini: "bd*4 sn ~ sn"

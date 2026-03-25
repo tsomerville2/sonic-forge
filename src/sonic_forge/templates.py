@@ -442,6 +442,75 @@ def _anthem_instrumental(n=10):
 
 
 # ===================================================================
+# BLUEGRASS
+# ===================================================================
+
+def _bluegrass_narrated(texts):
+    """Narrated bluegrass: fast pluck picking, bass root, voice tells the story."""
+    k = "g"
+    n = len(texts)
+    sections = []
+    for i, text in enumerate(texts):
+        p = i / max(1, n - 1)
+        if p < 0.1:
+            sections.append({"say": text, "cycles": 2, "layers": [
+                {"synth": "pluck", "notes": f"{k}2 b2 d3 {k}3 b3 d4", "fast": 16},
+                {"synth": "bass", "notes": f"{k}1 d2 {k}1 d2", "fast": 4},
+            ]})
+        elif p > 0.9:
+            sections.append({"say": text, "cycles": 2, "layers": [
+                {"synth": "pluck", "notes": f"{k}3 d3 b2 {k}2", "fast": 16},
+                {"synth": "bass", "notes": f"{k}1", "fast": 4},
+                {"mini": "bd ~ ~ ~"},
+            ]})
+        elif p < 0.5:
+            sections.append({"say": text, "cycles": 3, "layers": [
+                {"synth": "pluck", "notes": f"{k}2 b2 d3 {k}3", "fast": 16},
+                {"synth": "bass", "notes": f"{k}1 {k}1 d2 {k}1", "fast": 4},
+                {"mini": "bd ~ sn ~"},
+                {"mini": "~ hh ~ hh"},
+            ]})
+        else:
+            sections.append({"say": text, "cycles": 3, "layers": [
+                {"synth": "pluck", "notes": "c3 e3 g3 c4", "fast": 16},
+                {"synth": "bass", "notes": "c2 g1 c2 g1", "fast": 4},
+                {"mini": "bd ~ sn ~"},
+                {"mini": "hh(5,8)"},
+            ]})
+    return sections
+
+
+def _bluegrass_instrumental(n=10):
+    """Full bluegrass: fast flatpicking, walking bass, driving rhythm."""
+    return [
+        {"cycles": 2, "layers": [
+            {"synth": "pluck", "notes": "g2 b2 d3 g3 b3 d4", "fast": 16},
+            {"synth": "bass", "notes": "g1 d2 g1 d2", "fast": 4}]},
+        {"cycles": 3, "layers": [
+            {"synth": "pluck", "notes": "g2 b2 d3 g3 b3 d4", "fast": 16},
+            {"synth": "bass", "notes": "g1 g1 d2 g1", "fast": 4},
+            {"mini": "bd ~ sn ~"}, {"mini": "~ hh ~ hh"}]},
+        {"cycles": 3, "layers": [
+            {"synth": "pluck", "notes": "c3 e3 g3 c4 e4 g4", "fast": 16},
+            {"synth": "bass", "notes": "c2 g1 c2 g1", "fast": 4},
+            {"mini": "bd ~ sn ~"}, {"mini": "hh(5,8)"}]},
+        {"cycles": 4, "layers": [
+            {"synth": "pluck", "notes": "d3 a3 d4 f3 a3 d4", "fast": 16},
+            {"synth": "saw", "notes": "d3 a3", "fast": 8},
+            {"synth": "bass", "notes": "d2 a1 d2 a1", "fast": 4},
+            {"mini": "bd ~ sn ~"}, {"mini": "hh*8"}]},
+        {"cycles": 3, "layers": [
+            {"synth": "pluck", "notes": "g2 b2 d3 g3 e3 d3", "fast": 16},
+            {"synth": "bass", "notes": "g1 d2 c2 g1", "fast": 4},
+            {"mini": "bd ~ sn ~"}, {"mini": "~ hh ~ hh"}]},
+        {"cycles": 2, "layers": [
+            {"synth": "pluck", "notes": "g3 d3 b2 g2", "fast": 16},
+            {"synth": "bass", "notes": "g1 g1 g1 g1", "fast": 4},
+            {"mini": "bd ~ ~ ~"}]},
+    ]
+
+
+# ===================================================================
 # Registry
 # ===================================================================
 
@@ -486,6 +555,11 @@ TEMPLATES = {
         "bpm": 138, "voice": "Karen", "voice_lead": 2.0,
         "description": "Epic anthem — uplifting supersaws, triumphant pads",
         "narrated": _anthem_narrated, "instrumental": _anthem_instrumental,
+    },
+    "bluegrass": {
+        "bpm": 148, "voice": "Daniel", "voice_lead": 1.5,
+        "description": "Bluegrass — fast pluck picking, walking bass, driving rhythm",
+        "narrated": _bluegrass_narrated, "instrumental": _bluegrass_instrumental,
     },
 }
 

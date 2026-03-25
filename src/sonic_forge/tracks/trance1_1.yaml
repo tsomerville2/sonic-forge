@@ -1,11 +1,20 @@
 # switch.angel live session — described in YAML
+# Recreated second-by-second from her Tidal Cycles live coding streams.
 # Each section = a moment where she changes the code live.
 # The converter turns this into a WAV with timed voiceovers.
+#
+# Inspired by Switch.Angel — https://www.youtube.com/@Switch-Angel
+# She opened our eyes to generative computer music and led us to Tidal Cycles.
+# This whole project exists because of her. Go subscribe.
 
 title: switch.angel session
 bpm: 136
-voice: Samantha
-voice_lead: 2.0   # seconds before each change to start speaking
+voice: Samantha                # Voice name — daniel, heart, alice, Samantha, Zarvox...
+# engine: kokoro             # TTS engine — say (macOS), kokoro (neural, 54 voices)
+# fx: helmet                 # Robot FX — helmet, intercom, droid, ringmod, bitcrush, vocoder
+# music_volume: 0.8          # Music level 0.0-2.0 (try 0.6 for narrated songs)
+# voice_volume: 0.5          # Voice level 0.0-2.0 (try 0.5 for gentle narration)
+voice_lead: 2.0               # Seconds before each change to start speaking
 
 sections:
   - say: "in the beginning, there were five notes"

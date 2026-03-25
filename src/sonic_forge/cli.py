@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -28,26 +29,142 @@ def main(ctx: typer.Context) -> None:
 
 @app.command("play")
 def play_cmd(
-    name: str = typer.Argument(..., help="Track name (e.g. dark-space, midnight-drive, tpl-acid)."),
+    name: str = typer.Argument(..., help="Track name or file path (e.g. dark-space, song.mp3)."),
     minutes: Optional[int] = typer.Option(None, "--minutes", "-m", help="Duration in minutes (ChucK: default 60, templates: default 3)."),
+    visual: Optional[str] = typer.Option(None, "--visual", help="Talking head: droid, human, alien. Add :pixel for pixel art (e.g. alien:pixel:nes)."),
 ) -> None:
-    """Play a built-in track by name.
+    """Play a built-in track or audio file, with optional talking head.
 
     sonic-forge play dark-space                 ChucK, plays 1 hour, Ctrl-C to stop
     sonic-forge play dark-space -m 10           ChucK, 10 minutes
     sonic-forge play tpl-acid                   Generate 3 min of acid house
-    sonic-forge play tpl-acid -m 10             Generate 10 min of acid house
-    sonic-forge play midnight-drive             Render and play the composed song
+    sonic-forge play song.mp3                   Play an mp3/wav file
+    sonic-forge play song.mp3 --visual droid    Replay with talking head animation
+    sonic-forge play song.mp3 --visual alien:pixel:nes
     """
+    import subprocess
+
+    # If it's a file path, play it directly
+    if os.path.isfile(name):
+        if visual:
+            _play_file_with_visual(name, visual)
+        else:
+            print(f"\n  Playing {name}...")
+            subprocess.run(["afplay", name])
+        return
+
     from sonic_forge.launcher import play_song
     play_song(name, minutes=minutes)
 
 
+def _play_file_with_visual(filepath: str, visual: str) -> None:
+    """Play an audio file with talking head animation — image or pixel/ASCII."""
+    import subprocess
+    from sonic_forge.image_heads import CHARACTERS_DIR
+
+    parts = visual.split(":")
+    char_name = parts[0] if parts else "droid"
+
+    # Check if this is an image character
+    if (CHARACTERS_DIR / char_name).is_dir():
+        from sonic_forge.image_heads import animate_image_character
+        print(f"\n  Playing with {char_name} visual...")
+        animate_image_character(filepath, char_name)
+        return
+
+    # Fallback to pixel/ASCII talking heads (need WAV)
+    wav_path = filepath
+    cleanup_wav = False
+
+    if filepath.lower().endswith(".mp3"):
+        wav_path = filepath.rsplit(".", 1)[0] + ".wav"
+        if not os.path.exists(wav_path):
+            try:
+                subprocess.run(
+                    ["afconvert", filepath, wav_path, "-d", "LEI16", "-f", "WAVE"],
+                    check=True, capture_output=True,
+                )
+                cleanup_wav = True
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                print("  Could not convert to WAV — playing audio only...")
+                subprocess.run(["afplay", filepath])
+                return
+
+    style = parts[1] if len(parts) > 1 else "ascii"
+    palette = parts[2] if len(parts) > 2 else "nes"
+
+    try:
+        from sonic_forge.talking_heads import animate_character
+        print(f"\n  Playing with {char_name} visual...")
+        animate_character(wav_path, char_name=char_name, style=style, palette_name=palette)
+    except Exception:
+        subprocess.run(["afplay", wav_path])
+    finally:
+        if cleanup_wav and os.path.exists(wav_path):
+            os.remove(wav_path)
+
+
+@app.command("stop")
+def stop_cmd() -> None:
+    """Stop all playing audio (kills afplay and chuck processes)."""
+    import signal
+    import subprocess
+    killed = []
+    for proc in ("afplay", "chuck"):
+        result = subprocess.run(["pkill", "-9", proc], capture_output=True)
+        if result.returncode == 0:
+            killed.append(proc)
+    if killed:
+        print(f"\n  Stopped: {', '.join(killed)}\n")
+    else:
+        print("\n  Nothing playing.\n")
+
+
 @app.command("catalog")
 def catalog_cmd() -> None:
-    """List all built-in tracks — songs, ChucK, templates."""
+    """List all tracks — built-in + your installed songs."""
     from sonic_forge.launcher import list_songs
     list_songs()
+
+
+@app.command("install")
+def install_cmd(
+    source: str = typer.Argument(..., help="Path to a .yaml or .ck song file."),
+) -> None:
+    """Install a song into your collection (~/.sonic-forge/songs/).
+
+    sonic-forge install my_song.yaml
+    sonic-forge install dark_forest.ck
+    """
+    from sonic_forge.launcher import install_song
+    install_song(source)
+
+
+@app.command("export")
+def export_cmd(
+    name: str = typer.Argument(..., help="Track name to export (e.g. acid-session, dark-space)."),
+    output: Optional[str] = typer.Option(None, "-o", "--output", help="Output path."),
+) -> None:
+    """Export a built-in song file to the current directory.
+
+    Grab any song's source to learn from, remix, or share.
+
+    sonic-forge export acid-session        Get the YAML, edit it, make it yours
+    sonic-forge export dark-space          Get the ChucK source
+    sonic-forge export trance-og -o remix.yaml
+    """
+    from sonic_forge.launcher import export_song
+    export_song(name, dest=output)
+
+
+@app.command("dsl")
+def dsl_cmd() -> None:
+    """Show the song format reference — synths, notes, mini-notation.
+
+    Everything you need to write your own songs or teach an LLM to compose.
+    """
+    from sonic_forge.launcher import show_dsl
+    show_dsl()
 
 
 @app.command("render")
@@ -57,16 +174,19 @@ def render_cmd(
     play: bool = typer.Option(False, "--play", help="Play after rendering."),
     voice: Optional[str] = typer.Option(None, "--voice", help="TTS voice name (Samantha, af_heart, Zarvox...)."),
     engine: Optional[str] = typer.Option(None, "--engine", help="TTS engine: say (macOS), kokoro (Kokoro-82M)."),
-    fx: Optional[str] = typer.Option(None, "--fx", help="Robot effect: helmet, intercom, droid, ringmod, bitcrush."),
+    fx: Optional[str] = typer.Option(None, "--fx", help="Robot FX: helmet (muffled, droid), intercom (radio, medium clarity), droid (R2-style), ringmod (metallic), bitcrush (lo-fi, harsh)."),
     template: Optional[str] = typer.Option(None, "--template", help="Apply genre template."),
     lead: Optional[float] = typer.Option(None, "--lead", help="Voiceover lead time (seconds)."),
     rate: Optional[int] = typer.Option(None, "--rate", help="Speech rate (WPM)."),
     voice_stem: Optional[str] = typer.Option(None, "--voice-stem", help="Save voice-only WAV (for lip sync)."),
+    music_vol: Optional[float] = typer.Option(None, "--music-vol", help="Music volume (0.0-2.0, default 1.0)."),
+    voice_vol: Optional[float] = typer.Option(None, "--voice-vol", help="Voice volume (0.0-2.0, default 1.0)."),
 ) -> None:
     """Render a YAML song to WAV.
 
     sonic-forge render song.yaml --play
     sonic-forge render song.yaml --voice af_heart --engine kokoro --fx helmet --play
+    sonic-forge render song.yaml --voice-vol 0.5 --music-vol 1.5 --play
     sonic-forge render song.yaml --voice Daniel --template lofi --play
     """
     from sonic_forge.songfile import render_yaml_song
@@ -75,6 +195,7 @@ def render_cmd(
         voice_override=voice, template_name=template,
         lead_override=lead, speech_rate=rate,
         engine=engine, fx=fx, voice_stem=voice_stem,
+        music_vol=music_vol, voice_vol=voice_vol,
     )
 
 
@@ -102,24 +223,165 @@ def robotize_cmd(
 
 @app.command("speak")
 def speak_cmd(
-    text: str = typer.Argument(..., help="Text to speak aloud."),
+    topic: Optional[str] = typer.Argument(None, help="Topic for AI to write about, or literal text with --text."),
+    text: Optional[str] = typer.Option(None, "--text", "-T", help="Speak literal text (no AI). Overrides topic."),
     voice: Optional[str] = typer.Option(None, "--voice", "-v", help="Voice name (af_heart, Samantha, Zarvox...)."),
     engine: Optional[str] = typer.Option(None, "--engine", "-e", help="TTS engine: say, kokoro."),
-    fx: Optional[str] = typer.Option(None, "--fx", help="Robot effect: helmet, intercom, droid, ringmod, bitcrush."),
+    fx: Optional[str] = typer.Option(None, "--fx", help="Robot FX: helmet, intercom, droid, ringmod, bitcrush."),
     rate: Optional[int] = typer.Option(None, "--rate", help="Speech rate in WPM (macOS say)."),
     output: Optional[str] = typer.Option(None, "-o", "--output", help="Save WAV to this path."),
     no_play: bool = typer.Option(False, "--no-play", help="Generate only, don't play."),
+    visual: Optional[str] = typer.Option(None, "--visual", help="Talking head: droid, human, alien. Add :pixel for pixel art (e.g. alien:pixel:nes)."),
+    music: bool = typer.Option(False, "--music", help="Add bytebeat music backing (briefing mode)."),
+    template: Optional[str] = typer.Option(None, "--template", "-t", help="Music template when --music is used: cinematic, ambient, lofi, trance, acid, hiphop, minimal, anthem."),
 ) -> None:
-    """Speak text aloud using macOS say or Kokoro TTS.
+    """Speak text aloud — plain TTS, or with music backing.
 
-    sonic-forge speak "Hello world"
-    sonic-forge speak "Incoming transmission" --engine kokoro --voice af_heart
-    sonic-forge speak "Captain on deck" --fx helmet
-    sonic-forge speak "Warning" --voice Zarvox --fx intercom
+    Plain speech:
+      sonic-forge speak --text "Hello world"
+      sonic-forge speak --text "Captain on deck" --fx helmet
+      sonic-forge speak --text "Systems online" --visual droid
+
+    AI-written briefing (needs Claude, Gemini, or Ollama):
+      sonic-forge speak "boost crew morale"
+      sonic-forge speak "mission status" --fx helmet --voice heart --engine kokoro
+
+    With music backing (replaces the old 'brief' command):
+      sonic-forge speak "status update" --music
+      sonic-forge speak "mission log" --music --template ambient --visual droid
+      sonic-forge speak --text "All systems go." --music --template trance
+
+    Talking head animation:
+      sonic-forge speak --text "Greetings" --visual alien:pixel:nes --fx helmet
     """
+    if music:
+        # Music mode — render speech over bytebeat backing track
+        _speak_with_music(
+            topic=topic, text=text, voice=voice or "Daniel",
+            engine=engine, fx=fx, template=template or "cinematic",
+            output=output, visual=visual,
+        )
+        return
+
+    # Plain TTS mode
+    actual_text = text or topic
+    if not actual_text:
+        print("\n  Provide text or a topic. Run 'sonic-forge speak --help' for usage.\n")
+        raise typer.Exit(1)
+
+    if not text and topic:
+        # Topic mode — use LLM to write speech
+        from sonic_forge.llm import llm_json_request, setup_hint
+        speech_prompt = """You write short spoken scripts. Respond with JSON:
+{"text": "the full text to speak aloud"}
+RULES: Max 50 words. Written for the ear. Plain English. Punchy and direct."""
+        print("\n  Writing script...")
+        data = llm_json_request(speech_prompt, topic)
+        if data:
+            actual_text = data.get("text", topic)
+        else:
+            print(setup_hint())
+            actual_text = topic
+
     from sonic_forge.tts import speak
-    speak(text, engine=engine, voice=voice, rate=rate, fx=fx,
-          output_path=output, play=not no_play)
+    speak(actual_text, engine=engine, voice=voice, rate=rate, fx=fx,
+          output_path=output, play=not no_play, visual=visual)
+
+
+def _speak_with_music(topic, text, voice, engine, fx, template, output, visual):
+    """Speech over bytebeat music — the old 'brief' functionality."""
+    import tempfile
+
+    sections = None
+    title = "Briefing"
+
+    if not topic and not text:
+        print("\n  Provide a topic or use --text. Run 'sonic-forge speak --help' for usage.\n")
+        raise typer.Exit(1)
+
+    if text:
+        sections = [s.strip() for s in text.split(".") if s.strip()]
+        title = sections[0][:40] if sections else "Briefing"
+    else:
+        from sonic_forge.llm import llm_json_request, setup_hint
+        brief_prompt = """You write short spoken briefings for a starship audio system. Each section plays over music so it MUST be brief.
+
+Respond with JSON only:
+{"title": "short title", "sections": ["Section one.", "Section two.", "Section three.", "Section four."]}
+
+STRICT RULES:
+- MAXIMUM 15 words per section. This is non-negotiable. Count your words.
+- 4-6 sections total.
+- Written for the EAR. No URLs, no code, no punctuation tricks.
+- Plain English. Say "pie pie eye" not "PyPI". Spell out numbers.
+- Punchy and direct. Like a news anchor, not an essayist."""
+
+        print("\n  Writing briefing script...")
+        data = llm_json_request(brief_prompt, topic)
+
+        if data:
+            title = data.get("title", "Briefing")
+            sections = data.get("sections", [])
+            if isinstance(sections, str):
+                sections = [s.strip() for s in sections.split(". ") if s.strip()]
+        else:
+            print(setup_hint())
+            print("  Using your text as-is (no AI rewrite).\n")
+            sections = [s.strip() for s in topic.split(".") if s.strip()]
+            if not sections:
+                sections = [topic]
+            title = sections[0][:40]
+
+    if not sections:
+        print("\n  No content. Provide --text or set up an AI provider.\n")
+        raise typer.Exit(1)
+
+    print(f"\n  {title}")
+    for i, sec in enumerate(sections, 1):
+        print(f"    {i}. {sec}")
+
+    # Build YAML with cycle counts sized to speech length
+    safe_title = title.replace('"', '\\"')
+    yaml_lines = [f'title: "{safe_title}"', f"voice: {voice}",
+                  "voice_lead: 0.5", "", "sections:"]
+    for sec_text in sections:
+        words = len(sec_text.split())
+        speech_secs = (words / 150) * 60 + 1.5
+        cycles = max(2, round(speech_secs / 2.4 + 0.5))
+        safe_text = sec_text.replace('"', '\\"')
+        yaml_lines.append(f'  - say: "{safe_text}"')
+        yaml_lines.append(f"    cycles: {cycles}")
+    yaml_content = "\n".join(yaml_lines) + "\n"
+
+    out_path = output or tempfile.mktemp(suffix=".wav", prefix="speak_")
+    yaml_path = out_path.replace(".wav", ".yaml")
+
+    with open(yaml_path, "w") as f:
+        f.write(yaml_content)
+
+    print("\n  Rendering...")
+
+    from sonic_forge.songfile import render_yaml_song
+
+    voice_stem_path = out_path.replace(".wav", "_voice.wav") if visual else None
+    render_yaml_song(
+        yaml_path, output_path=out_path, play=not visual,
+        template_name=template,
+        voice_override=voice, engine=engine, fx=fx,
+        voice_stem=voice_stem_path,
+    )
+
+    if visual and os.path.exists(out_path):
+        _play_file_with_visual(out_path, visual)
+
+    if not output:
+        for f in (yaml_path, out_path):
+            if os.path.exists(f):
+                os.remove(f)
+        if voice_stem_path and os.path.exists(voice_stem_path):
+            os.remove(voice_stem_path)
+    else:
+        print(f"\n  Saved: {out_path}\n")
 
 
 @app.command("voices")
@@ -258,6 +520,366 @@ def _list_kokoro_voices(lang_filter=None):
         for voice_id, display_name in voices:
             print(f"    {voice_id:<18} {display_name:<14} --engine kokoro --voice {voice_id}")
     print()
+
+
+@app.command("testmodel")
+def testmodel_cmd(
+    prompt: Optional[str] = typer.Argument(None, help="Prompt to send to the model."),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="Ollama model name (e.g. granite4:3b, qwen3:4b)."),
+) -> None:
+    """Test an Ollama model — see raw output and timing.
+
+    sonic-forge testmodel --model granite4:3b "brief my crew"
+    sonic-forge testmodel "what is bytebeat?"
+    sonic-forge testmodel                          # pick a model interactively
+    """
+    import json
+    import re
+    import time
+    import urllib.request
+
+    ollama_base = os.environ.get("OLLAMA_API_BASE", "http://127.0.0.1:11434")
+
+    # Check Ollama is running
+    try:
+        with urllib.request.urlopen(f"{ollama_base}/api/tags", timeout=2) as resp:
+            tags = json.loads(resp.read())
+        models = [m["name"] for m in tags.get("models", [])]
+    except Exception:
+        print("\n  Ollama not running. Start it with: ollama serve\n")
+        raise typer.Exit(1)
+
+    if not models:
+        print("\n  No models installed. Try: ollama pull granite4:3b\n")
+        raise typer.Exit(1)
+
+    # Pick model
+    if not model:
+        print(f"\n  Available models ({len(models)}):\n")
+        for i, m in enumerate(models, 1):
+            size = tags["models"][i - 1].get("size", 0)
+            size_gb = size / 1e9 if size else 0
+            print(f"    {i:>2}. {m:<30} {size_gb:.1f} GB")
+        print()
+        choice = input("  Pick a model (number or name): ").strip()
+        if choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(models):
+                model = models[idx]
+            else:
+                print("  Invalid choice.")
+                raise typer.Exit(1)
+        else:
+            model = choice
+
+    if not prompt:
+        prompt = input("  Prompt: ").strip()
+        if not prompt:
+            print("  No prompt given.")
+            raise typer.Exit(1)
+
+    print(f"\n  Model:  {model}")
+    print(f"  Prompt: {prompt}\n")
+
+    # Send to Ollama
+    payload = json.dumps({
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": False,
+    }).encode()
+    req = urllib.request.Request(
+        f"{ollama_base}/api/chat",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+
+    wall_start = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            data = json.loads(resp.read())
+    except Exception as e:
+        print(f"  Error: {e}\n")
+        raise typer.Exit(1)
+    wall_elapsed = time.time() - wall_start
+
+    # Extract response text
+    content = data.get("message", {}).get("content", "")
+    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+
+    # Extract Ollama timing (nanoseconds → seconds)
+    load_ns = data.get("load_duration", 0)
+    prompt_ns = data.get("prompt_eval_duration", 0)
+    gen_ns = data.get("eval_duration", 0)
+    total_ns = data.get("total_duration", 0)
+    tokens = data.get("eval_count", 0)
+
+    load_s = load_ns / 1e9
+    prompt_s = prompt_ns / 1e9
+    gen_s = gen_ns / 1e9
+    total_s = total_ns / 1e9
+    tok_per_s = tokens / gen_s if gen_s > 0 else 0
+
+    # Print result
+    print("  ─── response ───\n")
+    for line in content.splitlines():
+        print(f"  {line}")
+
+    print(f"\n  ─── timing ───\n")
+    print(f"  Model load:   {load_s:>6.2f}s")
+    print(f"  Prompt eval:  {prompt_s:>6.2f}s")
+    print(f"  Generation:   {gen_s:>6.2f}s  ({tokens} tokens, {tok_per_s:.1f} tok/s)")
+    print(f"  Total:        {total_s:>6.2f}s  (wall: {wall_elapsed:.2f}s)")
+    print()
+
+
+@app.command("brief", hidden=True)
+def brief_cmd(
+    topic: Optional[str] = typer.Argument(None, help="Topic for AI briefing."),
+    text: Optional[str] = typer.Option(None, "--text", "-T", help="Literal text to speak."),
+    template: Optional[str] = typer.Option("cinematic", "--template", "-t", help="Music template."),
+    voice: Optional[str] = typer.Option("Daniel", "--voice", "-v", help="TTS voice name."),
+    engine: Optional[str] = typer.Option(None, "--engine", "-e", help="TTS engine: say, kokoro."),
+    fx: Optional[str] = typer.Option(None, "--fx", help="Robot FX."),
+    output: Optional[str] = typer.Option(None, "-o", "--output", help="Save WAV."),
+    visual: Optional[str] = typer.Option(None, "--visual", help="Talking head."),
+) -> None:
+    """[Moved to 'speak --music'] Audio briefing with music backing."""
+    print("  Note: 'brief' is now 'speak --music'. Redirecting...\n")
+    _speak_with_music(
+        topic=topic, text=text, voice=voice or "Daniel",
+        engine=engine, fx=fx, template=template or "cinematic",
+        output=output, visual=visual,
+    )
+
+
+@app.command("sing")
+def sing_cmd(
+    topic: Optional[str] = typer.Argument(None, help="What the song is about (AI writes lyrics)."),
+    lyrics: Optional[str] = typer.Option(None, "--lyrics", "-l", help="Lyrics text or path to .txt file (skip AI)."),
+    style: str = typer.Option("rock", "--style", "-s", help="Music style: rock, pop, bluegrass, folk, hiphop, country, jazz, metal, acappella, indie, electronic, ambient."),
+    voice: str = typer.Option("male", "--voice", "-v", help="Vocal gender: male or female."),
+    duration: Optional[float] = typer.Option(None, "--duration", "-d", help="Song duration in seconds (auto-sized from lyrics if omitted)."),
+    output: Optional[str] = typer.Option(None, "-o", "--output", help="Output mp3 path."),
+    batch: int = typer.Option(1, "--batch", "-b", help="Number of takes to generate (pick your favorite)."),
+    no_play: bool = typer.Option(False, "--no-play", help="Don't auto-play after generating."),
+    acappella: bool = typer.Option(False, "--acappella", help="Vocals only, no instruments."),
+    instrumental: bool = typer.Option(False, "--instrumental", help="Instruments only, no vocals."),
+    visual: Optional[str] = typer.Option(None, "--visual", help="Talking head: droid, human, alien. Add :pixel for pixel art (e.g. alien:pixel:nes)."),
+) -> None:
+    """Generate a song with real singing vocals (ACE-Step AI).
+
+    Three modes — vocals + instruments, vocals only, or instruments only:
+      sonic-forge sing "space crew morale"                    # full song
+      sonic-forge sing "space crew morale" --acappella        # voice only
+      sonic-forge sing "epic battle theme" --instrumental     # music only
+
+    From a topic (AI writes lyrics):
+      sonic-forge sing "space crew morale booster"
+      sonic-forge sing "watching cranes move" --style bluegrass
+      sonic-forge sing "love song" --style pop --voice female --batch 4
+
+    With talking head animation:
+      sonic-forge sing "alien contact" --visual alien:pixel:nes
+      sonic-forge sing "robot uprising" --visual droid --acappella
+
+    From your own lyrics:
+      sonic-forge sing --lyrics "verse one here. chorus here."
+      sonic-forge sing --lyrics my_song.txt --style folk
+      sonic-forge sing --lyrics cranes.txt --style bluegrass -o cranes.mp3
+
+    First run downloads ~4GB of models (one-time only).
+    """
+    from sonic_forge.sing import sing as do_sing
+    do_sing(
+        topic=topic, lyrics=lyrics, style=style, voice=voice,
+        duration=duration, output=output, batch=batch, no_play=no_play,
+        acappella=acappella, instrumental=instrumental, visual=visual,
+    )
+
+
+@app.command("character")
+def character_cmd(
+    name: Optional[str] = typer.Argument(None, help="Character name (e.g. aliengirl, captain, robot)."),
+    spritesheet: Optional[str] = typer.Argument(None, help="Path to spritesheet image (JPG or PNG)."),
+    grid: str = typer.Option("3x3", "--grid", "-g", help="Grid layout as ROWSxCOLS (e.g. 3x3, 3x5, 5x5)."),
+    remove: bool = typer.Option(False, "--remove", help="Remove a character."),
+    list_all: bool = typer.Option(False, "--list", "-l", help="List all installed characters."),
+    width: int = typer.Option(60, "--width", "-w", help="Preview width in columns."),
+) -> None:
+    """Add, list, or remove image characters for talking head animation.
+
+    Add a new character from a 3x3 spritesheet:
+      sonic-forge character aliengirl ~/Downloads/spritesheet.jpg
+      sonic-forge character captain /tmp/captain-sheet.png
+
+    The spritesheet should be a 3x3 grid:
+      Row 1: mouth closed  — eyes open, closed, variant
+      Row 2: mouth open    — eyes open, closed, variant
+      Row 3: mouth wide    — eyes open, closed, variant
+
+    List installed characters:
+      sonic-forge character --list
+
+    Remove a character:
+      sonic-forge character aliengirl --remove
+
+    Preview a character:
+      sonic-forge character aliengirl
+
+    If the character already exists, it will be replaced.
+    """
+    import shutil
+    from sonic_forge.image_heads import CHARACTERS_DIR, list_characters
+
+    if list_all or (name is None and not remove):
+        chars = list_characters()
+        if not chars:
+            print("\n  No image characters installed.")
+            print(f"  Add one: sonic-forge character <name> <spritesheet.jpg>\n")
+        else:
+            print(f"\n  Installed characters ({len(chars)}):\n")
+            for c in sorted(chars):
+                char_dir = CHARACTERS_DIR / c
+                sprites = list(char_dir.glob("*sprite*"))
+                src = sprites[0].name if sprites else "individual frames"
+                print(f"    {c:<20} ({src})")
+            print(f"\n  Use with: sonic-forge play song.mp3 --visual <name>\n")
+        return
+
+    if not name:
+        print("\n  Provide a character name. Run 'sonic-forge character --help' for usage.\n")
+        raise typer.Exit(1)
+
+    char_dir = CHARACTERS_DIR / name
+
+    if remove:
+        if char_dir.exists():
+            shutil.rmtree(char_dir)
+            print(f"\n  Removed character '{name}'.\n")
+        else:
+            print(f"\n  Character '{name}' not found.\n")
+        return
+
+    if spritesheet:
+        # Add/replace character
+        src = Path(spritesheet).expanduser().resolve()
+        if not src.exists():
+            print(f"\n  File not found: {spritesheet}\n")
+            raise typer.Exit(1)
+
+        # If source is inside the char dir, copy it out first
+        import tempfile
+        tmp_copy = None
+        try:
+            if char_dir.exists() and str(src).startswith(str(char_dir)):
+                tmp_copy = tempfile.mktemp(suffix=src.suffix)
+                shutil.copy2(str(src), tmp_copy)
+                src = Path(tmp_copy)
+
+            # Clear old character if exists
+            if char_dir.exists():
+                shutil.rmtree(char_dir)
+                print(f"  Replacing existing character '{name}'...")
+
+            char_dir.mkdir(parents=True, exist_ok=True)
+
+            # Copy spritesheet
+            dest = char_dir / f"spritesheet{src.suffix}"
+            shutil.copy2(str(src), str(dest))
+        finally:
+            if tmp_copy and os.path.exists(tmp_copy):
+                os.remove(tmp_copy)
+
+        # Parse grid
+        grid_parts = grid.lower().split("x")
+        if len(grid_parts) != 2 or not grid_parts[0].isdigit() or not grid_parts[1].isdigit():
+            print(f"\n  Invalid grid format: {grid}. Use ROWSxCOLS like 3x3 or 3x5.\n")
+            raise typer.Exit(1)
+        grid_rows, grid_cols = int(grid_parts[0]), int(grid_parts[1])
+
+        # Verify it slices correctly
+        from sonic_forge.spritesheet import slice_spritesheet, save_grid_info
+        try:
+            frames = slice_spritesheet(str(dest), rows=grid_rows, cols=grid_cols)
+            save_grid_info(str(char_dir), grid_rows, grid_cols)
+            print(f"\n  Character '{name}' installed — {len(frames)} frames ({grid_rows}x{grid_cols} grid) from {src.name}")
+            print(f"  Location: {char_dir}")
+            print(f"\n  Use with: sonic-forge play song.mp3 --visual {name}")
+            print(f"            sonic-forge speak --text 'hello' --visual {name}\n")
+        except Exception as e:
+            shutil.rmtree(char_dir)
+            print(f"\n  Failed to slice spritesheet: {e}")
+            print(f"  Expected a {grid_rows}x{grid_cols} grid image (JPG or PNG).\n")
+            raise typer.Exit(1)
+        return
+
+    # No spritesheet arg — preview if character exists
+    if char_dir.exists():
+        from sonic_forge.spritesheet import load_character_frames
+        frames = load_character_frames(str(char_dir))
+        if not frames:
+            print(f"\n  Character '{name}' exists but has no valid frames.\n")
+            raise typer.Exit(1)
+
+        # Show halfblock preview of the closed/open frame
+        from sonic_forge.image_heads import _img_to_halfblocks
+        preview_key = ("closed", "open")
+        if preview_key not in frames:
+            preview_key = list(frames.keys())[0]
+        lines = _img_to_halfblocks(frames[preview_key], width)
+        print(f"\n  Character: {name}  ({len(frames)} frames)\n")
+        for ln in lines:
+            print(f"  {ln}")
+        print(f"\n  Use with: sonic-forge play song.mp3 --visual {name}\n")
+    else:
+        print(f"\n  Character '{name}' not found.")
+        print(f"  Add it: sonic-forge character {name} <spritesheet.jpg>\n")
+
+
+@app.command("beat")
+def beat_cmd(
+    template: str = typer.Argument("cinematic", help="Genre template: trance, lofi, cinematic, ambient, acid, hiphop, minimal, anthem, bluegrass."),
+    duration: Optional[float] = typer.Option(None, "--duration", "-d", help="Duration in seconds (default ~30s)."),
+    output: Optional[str] = typer.Option(None, "-o", "--output", help="Save WAV to this path."),
+    no_play: bool = typer.Option(False, "--no-play", help="Generate only, don't play."),
+) -> None:
+    """Generate bytebeat instrumental music from the command line.
+
+    sonic-forge beat                          # cinematic, ~30s
+    sonic-forge beat trance                   # trance template
+    sonic-forge beat acid -d 60               # 60s of acid house
+    sonic-forge beat bluegrass -o banjo.wav   # save bluegrass to file
+    sonic-forge beat ambient -d 120           # 2 min ambient
+    """
+    import tempfile
+    from sonic_forge.templates import apply_template
+
+    song = apply_template(template, [])  # instrumental = no texts
+
+    # Build minimal YAML
+    import yaml
+    yaml_path = tempfile.mktemp(suffix=".yaml", prefix="beat_")
+    with open(yaml_path, "w") as f:
+        yaml.dump(song, f, default_flow_style=False)
+
+    out_path = output or tempfile.mktemp(suffix=".wav", prefix="beat_")
+
+    print(f"\n  Generating {template} beat...")
+
+    from sonic_forge.songfile import render_yaml_song
+    render_yaml_song(
+        yaml_path, output_path=out_path, play=not no_play,
+        target_duration=duration,
+    )
+
+    if output:
+        print(f"\n  Saved: {out_path}\n")
+
+    # Cleanup temp yaml
+    if os.path.exists(yaml_path) and yaml_path.startswith(tempfile.gettempdir()):
+        os.remove(yaml_path)
+    if not output and os.path.exists(out_path):
+        os.remove(out_path)
 
 
 if __name__ == "__main__":

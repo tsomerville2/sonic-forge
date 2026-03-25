@@ -79,6 +79,8 @@ def parse_song(yaml_path, target_duration=None, voice_lead_override=None):
     engine = doc.get("engine", None)
     fx = doc.get("fx", None)
     voice_lead = voice_lead_override if voice_lead_override is not None else doc.get("voice_lead", 2.0)
+    music_volume = doc.get("music_volume", 1.0)
+    voice_volume = doc.get("voice_volume", 1.0)
 
     cycle_dur = (60.0 / bpm) * 4  # 4 beats per cycle
     raw_sections = doc.get("sections", [])
@@ -125,6 +127,8 @@ def parse_song(yaml_path, target_duration=None, voice_lead_override=None):
         "engine": engine,
         "fx": fx,
         "voice_lead": voice_lead,
+        "music_volume": music_volume,
+        "voice_volume": voice_volume,
         "sections": sections,
         "voiceovers": voiceovers,
         "duration": time_cursor,
@@ -205,14 +209,17 @@ def _normalize_wav(wav_path):
 
 
 def mix_voiceover(music_path, voiceovers, output_path, voice="Samantha",
-                  speech_rate=None, engine=None, fx=None, voice_stem=None):
+                  speech_rate=None, engine=None, fx=None, voice_stem=None,
+                  voice_volume=1.0):
     """Mix speech clips into music at specific timestamps.
 
     engine: TTS engine ("say", "kokoro"). Auto-detected from voice if omitted.
     fx: Robot effect to apply to all voiceovers.
     voice_stem: If set, save voice-only WAV to this path (for lip sync analysis).
+    voice_volume: Volume multiplier for voice (0.0-2.0, default 1.0).
     """
     tmp_dir = os.path.dirname(output_path) or "."
+    vol = max(0.0, min(2.0, voice_volume))
 
     with wave.open(music_path, "r") as wf:
         n_frames = wf.getnframes()
@@ -235,7 +242,7 @@ def mix_voiceover(music_path, voiceovers, output_path, voice="Samantha",
         for j, sample in enumerate(speech_data):
             idx = start_sample + j
             if idx < len(music_data):
-                mixed = music_data[idx] + int(sample * 0.8)
+                mixed = music_data[idx] + int(sample * vol)
                 music_data[idx] = max(-32768, min(32767, mixed))
                 if voice_stem:
                     voice_data[idx] = sample
@@ -260,12 +267,14 @@ def render_yaml_song(yaml_path, output_path=None, play=False,
                      voice_override=None, lead_override=None,
                      target_duration=None, speech_rate=None,
                      template_name=None, engine=None, fx=None,
-                     voice_stem=None):
+                     voice_stem=None, music_vol=None, voice_vol=None):
     """Full pipeline: YAML -> music WAV -> mix voiceovers -> final WAV.
 
     engine: TTS engine for voiceovers ("say", "kokoro"). Auto-detected from voice.
     fx: Robot effect for voiceovers (helmet, intercom, droid, etc.).
     voice_stem: If set, save voice-only WAV to this path (for lip sync).
+    music_vol: Override music volume (0.0-2.0). Overrides YAML music_volume.
+    voice_vol: Override voice volume (0.0-2.0). Overrides YAML voice_volume.
     """
 
     if template_name:
@@ -348,31 +357,35 @@ def render_yaml_song(yaml_path, output_path=None, play=False,
     # Render music
     render_song(song["sections"], output_path, bpm=bpm)
 
-    # Scale music volume if template specifies it
-    music_volume = song.get("music_volume", 1.0)
-    if music_volume < 1.0:
+    # Resolve volumes: CLI flags override YAML values
+    music_volume = music_vol if music_vol is not None else song.get("music_volume", 1.0)
+    voice_volume = voice_vol if voice_vol is not None else song.get("voice_volume", 1.0)
+
+    # Scale music volume
+    if music_volume != 1.0:
         with wave.open(output_path, "r") as wf:
             n_frames = wf.getnframes()
             rate = wf.getframerate()
             data = array.array("h", wf.readframes(n_frames))
         for j in range(len(data)):
-            data[j] = int(data[j] * music_volume)
+            data[j] = max(-32768, min(32767, int(data[j] * music_volume)))
         with wave.open(output_path, "w") as wf:
             wf.setnchannels(1)
             wf.setsampwidth(2)
             wf.setframerate(rate)
             wf.writeframes(data.tobytes())
-        print(f"  Music volume: {int(music_volume * 100)}%")
+    print(f"  Music volume: {int(music_volume * 100)}%")
 
     # Mix voiceovers
     if song["voiceovers"]:
-        engine_info = f", engine: {engine}" if engine else ""
+        engine_label = engine or "say"
         fx_info = f", fx: {fx}" if fx else ""
         rate_info = f", {speech_rate} WPM" if speech_rate else ""
-        print(f"  Mixing {n_voices} voiceovers (voice: {song['voice']}{engine_info}{fx_info}{rate_info})...")
+        print(f"  Mixing {n_voices} voiceovers (voice: {song['voice']}, vol: {int(voice_volume * 100)}%, engine: {engine_label}{fx_info}{rate_info})...")
         mix_voiceover(output_path, song["voiceovers"], output_path,
                       voice=song["voice"], speech_rate=speech_rate,
-                      engine=engine, fx=fx, voice_stem=voice_stem)
+                      engine=engine, fx=fx, voice_stem=voice_stem,
+                      voice_volume=voice_volume)
 
     mins = int(dur) // 60
     secs = int(dur) % 60

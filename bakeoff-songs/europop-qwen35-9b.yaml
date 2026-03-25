@@ -1,0 +1,39 @@
+title: stars above us
+bpm: 130
+sections:
+  - say: "Look up at the light"
+    cycles: 2
+    layers:
+      - synth: pad
+        notes: c3 eb3 f3
+      - mini: "bd*4 hh*8"
+  - say: "Wonder in every star"
+    cycles: 3
+    layers:
+      - synth: saw
+        notes: d3 f3 ab3
+      - mini: "hh(5,8)"
+      - synth: pluck
+        notes: c4 e4 g4
+  - say: "Love fills the air tonight"
+    cycles: 2
+    layers:
+      - synth: acid
+        notes: eb2 g2 bb2
+      - mini: "bd*4 sn*8 hh(3,6)"
+      - synth: bass
+        notes: c2 eb2 g2
+  - say: "Shine with pure delight"
+    cycles: 3
+    layers:
+      - synth: pad
+        notes: f3 a3 c4
+      - mini: "~ hh ~ hh cp*8"
+      - synth: pluck
+        notes: a3 c4 eb4
+  - say: "We are one in the glow"
+    cycles: 2
+    layers:
+      - synth: saw
+        notes: g3 bb3 d4
+      - mini: "bd*4 hh(5,8)"

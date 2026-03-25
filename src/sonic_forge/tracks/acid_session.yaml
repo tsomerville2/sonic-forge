@@ -1,0 +1,166 @@
+# Acid Session — switch.angel-style acid with pitched bass, supersaw stabs, pluck melodies
+# Recreated from watching Switch.Angel's live coding streams second by second.
+# https://www.youtube.com/@Switch-Angel — she's so fucking cool.
+title: acid session
+bpm: 136
+# voice: daniel              # Voice name — daniel, heart, alice, Samantha, Zarvox...
+# engine: kokoro             # TTS engine — say (macOS), kokoro (neural, 54 voices)
+# fx: helmet                 # Robot FX — helmet, intercom, droid, ringmod, bitcrush, vocoder
+# music_volume: 1.0          # Music level 0.0-2.0 (try 0.6 for narrated songs)
+# voice_volume: 1.0          # Voice level 0.0-2.0 (try 0.5 for gentle narration)
+# voice_lead: 2.0            # Seconds before section to start speaking
+
+sections:
+  # INTRO: acid bass alone
+  - cycles: 8
+    layers:
+      - synth: acid
+        notes: c2 c2 eb2 c2 f2 eb2 c2 bb1
+        fast: 16
+
+  # ADD KICK
+  - cycles: 8
+    layers:
+      - synth: acid
+        notes: c2 c2 eb2 c2 f2 eb2 c2 bb1
+        fast: 16
+      - mini: "bd*4"
+
+  # ADD HATS
+  - cycles: 8
+    layers:
+      - synth: acid
+        notes: c2 c2 eb2 c2 f2 eb2 c2 bb1
+        fast: 16
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh ~ hh ~ hh"
+
+  # FIRST BUILD: clap, acid gets wilder
+  - cycles: 8
+    layers:
+      - synth: acid
+        notes: c2 eb2 f2 ab2 bb2 ab2 f2 eb2
+        fast: 16
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh ~ hh ~ hh"
+      - mini: "~ ~ cp ~"
+
+  # BREAKDOWN: pads enter
+  - cycles: 8
+    layers:
+      - synth: pad
+        notes: c3 eb3
+      - synth: acid
+        notes: c2
+        fast: 4
+      - mini: "hh(5,8)"
+
+  # REBUILD: pluck melody
+  - cycles: 8
+    layers:
+      - synth: acid
+        notes: c2 c2 eb2 c2 f2 eb2 c2 bb1
+        fast: 16
+      - synth: pluck
+        notes: c4 eb4 f4 eb4
+        fast: 8
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh ~ hh ~ hh"
+      - mini: "~ ~ cp ~"
+
+  # DROP: full power, euclidean everything
+  - cycles: 12
+    layers:
+      - synth: acid
+        notes: c2 eb2 f2 ab2
+        fast: 16
+      - synth: pluck
+        notes: c4 eb4 g4 c5
+        fast: 16
+      - synth: bass
+        notes: c1
+        fast: 4
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+      - mini: "cp(3,8)"
+
+  # VARIATION: shift acid pattern
+  - cycles: 8
+    layers:
+      - synth: acid
+        notes: f2 f2 ab2 f2 bb2 ab2 f2 eb2
+        fast: 16
+      - synth: pluck
+        notes: f4
+        fast: 8
+      - synth: bass
+        notes: f1
+        fast: 4
+      - mini: "bd*4"
+      - mini: "hh*8"
+      - mini: "~ sn ~ sn"
+
+  # PEAK: supersaw stabs
+  - cycles: 12
+    layers:
+      - synth: acid
+        notes: c2 eb2 f2 ab2
+        fast: 16
+      - synth: saw
+        notes: c3
+        fast: 4
+      - synth: pluck
+        notes: c5 g4 eb5 c5
+        fast: 8
+      - synth: bass
+        notes: c1
+        fast: 4
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+      - mini: "cp(3,8)"
+
+  # BREAKDOWN 2: sparse
+  - cycles: 8
+    layers:
+      - synth: pad
+        notes: eb3 c3
+      - synth: acid
+        notes: c2
+        fast: 4
+      - mini: "hh(3,8)"
+
+  # FINAL BUILD
+  - cycles: 12
+    layers:
+      - synth: acid
+        notes: c2 eb2 f2 ab2 c2 bb1 ab1 c2
+        fast: 16
+      - synth: pluck
+        notes: c4 eb4 g4 c5
+        fast: 16
+      - synth: saw
+        notes: c3
+        fast: 8
+      - synth: bass
+        notes: c1
+        fast: 4
+      - mini: "bd*4"
+      - mini: "hh*8"
+      - mini: "~ sn ~ sn"
+
+  # OUTRO: acid + kick
+  - cycles: 8
+    layers:
+      - synth: acid
+        notes: c2 c2 eb2 c2 f2 eb2 c2 bb1
+        fast: 16
+      - mini: "bd*4"
+
+  # END: acid alone, fading
+  - cycles: 4
+    layers:
+      - synth: acid
+        notes: c2
+        fast: 4

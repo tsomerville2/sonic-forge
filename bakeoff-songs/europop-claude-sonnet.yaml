@@ -1,0 +1,64 @@
+title: light of forever
+bpm: 132
+sections:
+  - say: "We are made of starlight and longing"
+    cycles: 2
+    layers:
+      - synth: pad
+        notes: c3 e3 g3 a3
+      - synth: bass
+        notes: c2 a1 f1 g1
+      - mini: "bd ~ ~ bd ~ ~ bd ~"
+      - mini: "hh*8"
+
+  - say: "Every heartbeat a universe expanding"
+    cycles: 3
+    layers:
+      - synth: saw
+        notes: c4 e4 g4 f4
+        fast: 8
+      - synth: bass
+        notes: c2 a1 f1 g1
+      - mini: "bd*4"
+      - mini: "~ sn ~ sn"
+      - mini: "hh(5,8)"
+
+  - say: "You are the dawn I have always been reaching for"
+    cycles: 3
+    layers:
+      - synth: pluck
+        notes: c5 e5 g5 a5 g5 e5
+        fast: 16
+      - synth: pad
+        notes: c3 e3 g3
+      - synth: bass
+        notes: c2 a1 f1 g1
+      - mini: "bd*4"
+      - mini: "~ sn ~ sn"
+      - mini: "hh*8"
+
+  - say: "Stars burn because they cannot help but shine"
+    cycles: 2
+    layers:
+      - synth: acid
+        notes: c2 eb2 f2 g2
+        fast: 16
+      - synth: pad
+        notes: c3 eb3
+      - synth: bass
+        notes: c2 f1
+      - mini: "bd*4"
+      - mini: "~ sn ~ sn"
+      - mini: "hh(7,8)"
+
+  - say: "And so do you, beloved, so do you"
+    cycles: 2
+    layers:
+      - synth: pad
+        notes: c3 e3 g3 c4
+      - synth: pluck
+        notes: c5 g4 e5 c5
+      - synth: bass
+        notes: c2
+      - mini: "bd ~ sn ~ bd ~ sn ~"
+      - mini: "oh ~ ~ oh"

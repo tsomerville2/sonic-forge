@@ -1,0 +1,60 @@
+title: neon cathedral
+bpm: 136
+sections:
+  - say: "Every star is a door you forgot you opened"
+    cycles: 2
+    layers:
+      - synth: pad
+        notes: c4 eb4 g4
+      - synth: bass
+        notes: c2
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh"
+
+  - say: "We are light pretending to be solid"
+    cycles: 3
+    layers:
+      - synth: acid
+        notes: c3 eb3 f3 g3
+        fast: 16
+      - synth: pad
+        notes: ab3 g3
+      - mini: "bd*4"
+      - mini: "hh*8"
+      - mini: "~ ~ cp ~"
+
+  - say: "The night hums your name in frequencies only the heart can hear"
+    cycles: 3
+    layers:
+      - synth: pluck
+        notes: g4 eb4 c4 g4
+        fast: 8
+      - synth: bass
+        notes: ab2 g2
+      - mini: "bd ~ bd ~"
+      - mini: "hh(5,8)"
+      - mini: "~ ~ sn ~"
+
+  - say: "Hold still — the universe is dancing through you"
+    cycles: 2
+    layers:
+      - synth: saw
+        notes: c4 eb4 f4 g4
+        fast: 8
+      - synth: pad
+        notes: c4 g4
+      - synth: bass
+        notes: c2 c2 ab1 g1
+      - mini: "bd*4"
+      - mini: "hh*8"
+      - mini: "~ ~ cp ~"
+      - mini: "~ ~ ~ oh"
+
+  - say: "And the light returns"
+    cycles: 2
+    layers:
+      - synth: pad
+        notes: c4 eb4 g4 c5
+      - synth: pluck
+        notes: c5
+      - mini: "bd ~ ~ ~"

@@ -1,8 +1,12 @@
 # Captain's log — the short mix
 title: the captain's log
 bpm: 124
-voice: Alex
-voice_lead: 1.5
+voice: Alex                    # Voice name — daniel, heart, alice, Samantha, Zarvox...
+# engine: kokoro             # TTS engine — say (macOS), kokoro (neural, 54 voices)
+# fx: helmet                 # Robot FX — helmet, intercom, droid, ringmod, bitcrush, vocoder
+# music_volume: 0.8          # Music level 0.0-2.0 (try 0.6 for narrated songs)
+# voice_volume: 0.5          # Voice level 0.0-2.0 (try 0.5 for gentle narration)
+voice_lead: 1.5               # Seconds before each change to start speaking
 
 sections:
   - say: "captain's log"

@@ -106,6 +106,7 @@ def _kokoro_to_wav(text, wav_path, voice="af_heart", speed=1.0):
     """Generate speech WAV via Kokoro-82M ONNX."""
     import soundfile as sf
 
+    voice = _resolve_kokoro_voice(voice)
     kokoro = _get_kokoro()
     samples, sr = kokoro.create(text, voice=voice, speed=speed)
     sf.write(wav_path, samples, sr)
@@ -120,10 +121,71 @@ _KOKORO_PREFIXES = {"af_", "am_", "bf_", "bm_", "ef_", "em_", "ff_",
                      "hf_", "hm_", "if_", "im_", "jf_", "jm_",
                      "pf_", "pm_", "zf_", "zm_"}
 
+# Friendly name → kokoro voice ID lookup (case-insensitive)
+_KOKORO_NAME_MAP = {
+    "alloy": "af_alloy", "aoede": "af_aoede", "bella": "af_bella",
+    "heart": "af_heart", "jessica": "af_jessica", "kore": "af_kore",
+    "nicole": "af_nicole", "nova": "af_nova", "river": "af_river",
+    "sarah": "af_sarah", "sky": "af_sky",
+    "adam": "am_adam", "echo": "am_echo", "eric": "am_eric",
+    "fenrir": "am_fenrir", "liam": "am_liam", "michael": "am_michael",
+    "onyx": "am_onyx", "puck": "am_puck",
+    "alice": "bf_alice", "emma": "bf_emma",
+    "isabella": "bf_isabella", "lily": "bf_lily",
+    "daniel": "bm_daniel", "fable": "bm_fable",
+    "george": "bm_george", "lewis": "bm_lewis",
+    "siwis": "ff_siwis",
+    "xiaobei": "zf_xiaobei", "xiaoni": "zf_xiaoni",
+    "xiaoxiao": "zf_xiaoxiao", "xiaoyi": "zf_xiaoyi",
+    "yunjian": "zm_yunjian", "yunxi": "zm_yunxi",
+    "yunxia": "zm_yunxia", "yunyang": "zm_yunyang",
+    "gongitsune": "jf_gongitsune", "nezumi": "jf_nezumi",
+    "tebukuro": "jf_tebukuro", "kumo": "jm_kumo",
+    "nicola": "im_nicola",
+}
+# Names shared across languages (dora, alex, santa, alpha, beta, etc.)
+# resolve to the first/most-common variant
+_KOKORO_NAME_MAP.update({
+    "dora": "ef_dora", "alex": "em_alex", "santa": "am_santa",
+    "alpha": "hf_alpha", "beta": "hf_beta", "omega": "hm_omega", "psi": "hm_psi",
+    "sara": "if_sara",
+})
+
+
+def _resolve_kokoro_voice(voice):
+    """Resolve a friendly name like 'daniel' to 'bm_daniel'."""
+    if not voice:
+        return "af_heart"
+    # Already a full kokoro ID
+    if any(voice.startswith(p) for p in _KOKORO_PREFIXES):
+        return voice
+    # Try friendly name lookup (case-insensitive)
+    resolved = _KOKORO_NAME_MAP.get(voice.lower())
+    if resolved:
+        return resolved
+    # If it looks like a kokoro ID but with wrong case, try lowercase
+    if "_" in voice:
+        resolved = _KOKORO_NAME_MAP.get(voice.lower().split("_", 1)[-1])
+        if resolved:
+            return resolved
+    # Give a helpful error
+    raise ValueError(
+        f"Unknown Kokoro voice: '{voice}'\n"
+        f"  Use a full ID (e.g. bm_daniel) or just the name (e.g. daniel).\n"
+        f"  Run 'sonic-forge voices --engine kokoro' to see all 54 voices."
+    )
+
 
 def _detect_engine(voice):
     """Guess engine from voice name."""
-    if voice and any(voice.startswith(p) for p in _KOKORO_PREFIXES):
+    if not voice:
+        return "say"
+    if any(voice.startswith(p) for p in _KOKORO_PREFIXES):
+        return "kokoro"
+    # Kokoro friendly names are lowercase (heart, daniel, alice).
+    # macOS say voices are capitalized (Samantha, Daniel, Zarvox).
+    # Only match kokoro if the input is already lowercase.
+    if voice[0].islower() and voice.lower() in _KOKORO_NAME_MAP:
         return "kokoro"
     return "say"
 
@@ -133,7 +195,7 @@ def _detect_engine(voice):
 # ---------------------------------------------------------------------------
 
 def speak(text, engine=None, voice=None, rate=None, speed=1.0, fx=None,
-          output_path=None, play=True):
+          output_path=None, play=True, visual=None):
     """Speak text aloud. Auto-detects engine from voice name if not specified.
 
     Args:
@@ -145,6 +207,7 @@ def speak(text, engine=None, voice=None, rate=None, speed=1.0, fx=None,
         fx: Robot effect to apply: helmet, intercom, droid, ringmod, bitcrush.
         output_path: Save WAV to this path instead of a temp file.
         play: If True, play the audio after generating.
+        visual: Talking head spec: "droid", "alien:pixel", "human:pixel:nes".
 
     Returns:
         Path to the generated WAV file (if output_path set).
@@ -175,7 +238,10 @@ def speak(text, engine=None, voice=None, rate=None, speed=1.0, fx=None,
             wav_path = _apply_fx(wav_path, fx)
 
         if play:
-            subprocess.run(["afplay", wav_path])
+            if visual:
+                _play_with_visual(wav_path, text, visual)
+            else:
+                subprocess.run(["afplay", wav_path])
 
         if keep_file:
             return wav_path
@@ -184,6 +250,22 @@ def speak(text, engine=None, voice=None, rate=None, speed=1.0, fx=None,
             os.remove(wav_path)
 
     return None
+
+
+def _play_with_visual(wav_path, text, visual_spec):
+    """Play audio with talking head animation."""
+    parts = visual_spec.split(":")
+    char_name = parts[0] if parts else "droid"
+    style = parts[1] if len(parts) > 1 else "ascii"
+    palette = parts[2] if len(parts) > 2 else "nes"
+
+    try:
+        from sonic_forge.talking_heads import animate_character
+        animate_character(wav_path, char_name=char_name, text=text,
+                          style=style, palette_name=palette)
+    except Exception:
+        # Fallback: just play audio normally
+        subprocess.run(["afplay", wav_path])
 
 
 def _apply_fx(wav_path, effect_name):

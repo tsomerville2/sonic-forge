@@ -1,0 +1,32 @@
+title: light in the stars
+bpm: 132
+sections:
+  - say: "Glowing sparks"
+    cycles: 3
+    layers:
+      - synth: acid
+        notes: c4 eb4 f4
+        fast: 16
+      - mini: "bd*4"
+  - say: "Warm embrace"
+    cycles: 3
+    layers:
+      - synth: pad
+        notes: g3 b3
+      - synth: pluck
+        notes: c4 e5
+      - mini: "hh(3,6)"
+  - say: "Endless love"
+    cycles: 2
+    layers:
+      - synth: saw
+        notes: d4 f4
+      - mini: "bd*4 sn~ hh~"
+  - say: "Wonder unfolds"
+    cycles: 3
+    layers:
+      - synth: bass
+        notes: c2 eb2
+      - synth: pluck
+        notes: g4 b5
+      - mini: "hh(4,8)"

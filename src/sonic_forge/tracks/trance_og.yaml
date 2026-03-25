@@ -1,0 +1,97 @@
+# "LET US TRANCE ONCE MORE" — the original bytebeat trance
+# Recreates: n("<0 4 0 9 7>*16").scale("g:minor").trans(-12)
+title: let us trance once more
+bpm: 138
+# voice: heart               # Voice name — daniel, heart, alice, Samantha, Zarvox...
+# engine: kokoro             # TTS engine — say (macOS), kokoro (neural, 54 voices)
+# fx: intercom               # Robot FX — helmet, intercom, droid, ringmod, bitcrush, vocoder
+# music_volume: 1.0          # Music level 0.0-2.0 (try 0.6 for narrated songs)
+# voice_volume: 1.0          # Voice level 0.0-2.0 (try 0.5 for gentle narration)
+# voice_lead: 2.0            # Seconds before section to start speaking
+
+sections:
+  # Intro: pluck arp alone
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+
+  # Kick enters
+  - cycles: 10
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - mini: "bd*4"
+
+  # Hats join
+  - cycles: 10
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh ~ hh ~ hh"
+
+  # Layer saw for thickness + clap
+  - cycles: 10
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh ~ hh ~ hh"
+      - mini: "~ ~ cp ~"
+
+  # Full power with bass
+  - cycles: 15
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: bass
+        notes: g1 d2 g1 bb2 g2
+        fast: 4
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+      - mini: "cp(3,8)"
+
+  # Breakdown: arp + pad
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pad
+        notes: g2 bb2
+
+  # Final build
+  - cycles: 15
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: bass
+        notes: g1 d2 g1 bb2 g2
+        fast: 4
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+
+  # Outro: arp alone
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16

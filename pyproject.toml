@@ -4,19 +4,23 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sonic-forge"
-version = "0.5.2"
-description = "Bytebeat music DSL + multi-engine TTS voice system — beamed from starforge"
+version = "0.7.8"
+description = "Bytebeat music DSL + multi-engine TTS + talking heads — beamed from starforge"
 requires-python = ">=3.10"
 dependencies = [
     "pyyaml",
     "typer",
+    "numpy",
+    "soundfile",
+    "kokoro-onnx",
+    "onnxruntime",
 ]
 
 [project.optional-dependencies]
-kokoro = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy"]
-tts = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy", "f5-tts-mlx"]
-robot = ["soundfile", "numpy"]
-all = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy", "f5-tts-mlx"]
+llm = ["anthropic", "google-generativeai"]
+
+[project.urls]
+Inspiration = "https://www.youtube.com/@Switch-Angel"
 
 [project.scripts]
 sonic-forge = "sonic_forge.cli:app"

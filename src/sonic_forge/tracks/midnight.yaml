@@ -1,8 +1,12 @@
 # A moody midnight track — proving the YAML format works for any style
 title: midnight drive
 bpm: 110
-voice: Daniel
-voice_lead: 2.5
+voice: Daniel                  # Voice name — daniel, heart, alice, Samantha, Zarvox...
+# engine: kokoro             # TTS engine — say (macOS), kokoro (neural, 54 voices)
+# fx: intercom               # Robot FX — helmet, intercom, droid, ringmod, bitcrush, vocoder
+# music_volume: 0.8          # Music level 0.0-2.0 (try 0.6 for narrated songs)
+# voice_volume: 0.5          # Voice level 0.0-2.0 (try 0.5 for gentle narration)
+voice_lead: 2.5               # Seconds before each change to start speaking
 
 sections:
   - say: "the city sleeps, but we don't"

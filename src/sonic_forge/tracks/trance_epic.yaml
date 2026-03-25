@@ -1,0 +1,213 @@
+# "LET US TRANCE ONCE MORE" v2 — huge synth pads + dual arps + acid
+title: trance epic
+bpm: 138
+# voice: fenrir              # Voice name — daniel, heart, alice, Samantha, Zarvox...
+# engine: kokoro             # TTS engine — say (macOS), kokoro (neural, 54 voices)
+# fx: droid                  # Robot FX — helmet, intercom, droid, ringmod, bitcrush, vocoder
+# music_volume: 1.0          # Music level 0.0-2.0 (try 0.6 for narrated songs)
+# voice_volume: 1.0          # Voice level 0.0-2.0 (try 0.5 for gentle narration)
+# voice_lead: 2.0            # Seconds before section to start speaking
+
+sections:
+  # 1. INTRO: arp alone, pure
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+
+  # 2. KICK enters
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - mini: "bd*4"
+
+  # 3. HATS join
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh ~ hh ~ hh"
+
+  # 4. FIRST HUGE PAD — Gm chord swells in
+  - cycles: 10
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pad
+        notes: g3 bb3 d4
+      - mini: "bd*4"
+      - mini: "~ hh ~ hh ~ hh ~ hh"
+      - mini: "~ ~ cp ~"
+
+  # 5. PAD shifts to Eb, melody enters
+  - cycles: 10
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pluck
+        notes: g4 bb4 d5 bb4 g4 f4 d4 f4
+        fast: 8
+      - synth: pad
+        notes: eb3 g3 bb3
+      - synth: bass
+        notes: g1 d2 g1 bb2 g2
+        fast: 4
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ ~ cp ~"
+
+  # 6. BREAKDOWN — just arp + huge Cm pad
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pad
+        notes: c3 eb3 g3
+
+  # 7. REBUILD — kick returns, D pad (tension)
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pad
+        notes: d3 f3 a3
+      - mini: "bd*4"
+      - mini: "hh(5,8)"
+
+  # 8. FIRST DROP — full power
+  - cycles: 15
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pluck
+        notes: g4 bb4 d5 bb4 g4 f4 d4 f4
+        fast: 8
+      - synth: pad
+        notes: g3 bb3 d4
+      - synth: bass
+        notes: g1 d2 g1 bb2 g2
+        fast: 4
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+      - mini: "cp(3,8)"
+
+  # 9. VARIATION — acid arp, Eb pad
+  - cycles: 10
+    layers:
+      - synth: acid
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pad
+        notes: eb3 g3 bb3
+      - synth: bass
+        notes: g1 d2 g1 bb2 g2
+        fast: 4
+      - mini: "bd*4"
+      - mini: "hh*8"
+      - mini: "~ sn ~ sn"
+
+  # 10. SECOND BREAKDOWN — pads only
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pad
+        notes: g3 bb3 d4
+      - synth: pad
+        notes: c3 eb3 g3
+
+  # 11. BUILD to peak — D pad, melody returns
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pluck
+        notes: g4 bb4 d5 bb4 g4 f4 d4 f4
+        fast: 8
+      - synth: pad
+        notes: d3 f3 a3
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "cp(3,8)"
+
+  # 12. PEAK — everything at once
+  - cycles: 15
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: acid
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pluck
+        notes: g4 bb4 d5 bb4 g4 f4 d4 f4
+        fast: 8
+      - synth: pad
+        notes: g3 bb3 d4
+      - synth: bass
+        notes: g1 d2 g1 bb2 g2
+        fast: 4
+      - mini: "bd*4"
+      - mini: "[hh hh hh ~]*4"
+      - mini: "~ sn ~ sn"
+      - mini: "cp(3,8)"
+
+  # 13. OUTRO — strip layers
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: saw
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pad
+        notes: eb3 g3 bb3
+      - mini: "bd*4"
+
+  # 14. FINAL — arp and pad
+  - cycles: 5
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
+      - synth: pad
+        notes: g3 bb3 d4
+
+  # 15. END — arp alone
+  - cycles: 3
+    layers:
+      - synth: pluck
+        notes: g2 d3 g2 bb3 g3
+        fast: 16
