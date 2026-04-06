@@ -1,0 +1,34 @@
+title: Stardust Dreams
+bpm: 135
+sections:
+  - say: "Let the light dance with your soul."
+    cycles: 3
+    layers:
+      - synth: acid
+        notes: c2 eb2 f2
+        fast: 16
+      - mini: "bd*2"
+  - cycles: 2
+    layers:
+      - synth: pad
+        notes: c3 eb3
+      - mini: "hh(4,8)"
+  - say: "Stars ignite, a silent plea."
+    cycles: 2
+    layers:
+      - synth: pluck
+        notes: f3 c4
+        fast: 8
+      - mini: "sn(4,8)"
+  - cycles: 3
+    layers:
+      - synth: bass
+        notes: c1 eb1
+      - mini: "oh(2,6)"
+  - say: "Love unfolds, eternally bright."
+    cycles: 2
+    layers:
+      - synth: saw
+        notes: c3 eb3
+        fast: 12
+      - mini: "cp(2,8)"

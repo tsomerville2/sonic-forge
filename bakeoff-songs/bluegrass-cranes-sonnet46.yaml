@@ -1,0 +1,87 @@
+title: Iron Arms in the Morning Sky
+bpm: 148
+sections:
+  - cycles: 2
+    layers:
+      - synth: pluck
+        notes: g2 b2 d3 g3 b3 d4
+        fast: 16
+      - synth: bass
+        notes: g1 d2 g1 d2
+        fast: 4
+      - mini: "bd ~ sn ~"
+
+  - say: "Steel arm reaching cross the morning sky"
+    cycles: 3
+    layers:
+      - synth: pluck
+        notes: g2 b2 d3 g3
+        fast: 16
+      - synth: bass
+        notes: g1 g1 d2 g1
+        fast: 4
+      - mini: "bd ~ sn ~"
+      - mini: "~ hh ~ hh"
+
+  - say: "Swings slow, like it owns the light"
+    cycles: 3
+    layers:
+      - synth: pluck
+        notes: c3 e3 g3 c4
+        fast: 16
+      - synth: bass
+        notes: c2 g1 c2 g1
+        fast: 4
+      - mini: "bd ~ sn ~"
+      - mini: "hh(5,8)"
+
+  - say: "Iron crane dancing high above the town"
+    cycles: 3
+    layers:
+      - synth: pluck
+        notes: d3 a3 d4 f3 a3 d4
+        fast: 16
+      - synth: bass
+        notes: d2 a1 d2 a1
+        fast: 4
+      - synth: pad
+        notes: d3 a3
+      - mini: "bd ~ sn ~"
+      - mini: "hh*8"
+
+  - say: "Grace in every ton of turning steel"
+    cycles: 3
+    layers:
+      - synth: pluck
+        notes: g2 b2 d3 g3 e3 d3
+        fast: 16
+      - synth: bass
+        notes: g1 d2 c2 g1
+        fast: 4
+      - synth: saw
+        notes: g3 e3 d3
+        fast: 8
+      - mini: "bd ~ sn ~"
+      - mini: "~ hh ~ hh"
+
+  - say: "Lord, I never thought machinery could sing"
+    cycles: 3
+    layers:
+      - synth: pluck
+        notes: c3 e3 g3 e3 d3 b2
+        fast: 16
+      - synth: bass
+        notes: c2 g1 d2 g1
+        fast: 4
+      - mini: "bd ~ sn ~"
+      - mini: "hh(3,8)"
+
+  - cycles: 2
+    layers:
+      - synth: pluck
+        notes: g3 d3 b2 g2
+        fast: 16
+      - synth: bass
+        notes: g1 g1 g1 g1
+        fast: 4
+      - mini: "bd ~ ~ ~"

@@ -1,0 +1,31 @@
+title: Starlight Serenade
+bpm: 132
+sections:
+ - say: "Silver dust on velvet skies, a whispered dream, a lover's sighs."
+   cycles: 4
+   layers:
+     - synth: pad
+       notes: c3 eb3 g3
+     - mini: "bd*4"
+     - mini: "hh(5,8)"
+ - cycles: 4
+   layers:
+     - synth: pluck
+       notes: g3 b3 d4
+     - synth: pad
+       notes: c3 eb3
+     - mini: "bd*4"
+     - mini: "hh(5,8)"
+ - say: "Golden light, a tender grace, reflected in a loving face."
+   cycles: 2
+   layers:
+     - synth: saw
+       notes: e3 g3 b3
+     - synth: pad
+       notes: c3 eb3
+ - cycles: 2
+   layers:
+     - synth: bass
+       notes: c2 eb2 g2
+     - synth: pad
+       notes: c3 eb3
