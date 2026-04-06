@@ -1,0 +1,418 @@
+meta:
+  name: sonic-forge
+  mcp_server: prodboost
+  description: MCP server and CLI tools for sonic-forge
+settings:
+  trigger_words:
+  - sonic-forge
+  trigger_threshold: 0.3
+  ambient_threshold: 0.45
+  embedding_model: BAAI/bge-small-en-v1.5
+  embedding_threshold: 0.78
+  llm_fallback: true
+  llm_provider: auto
+nudge:
+  tag: sonic-forge-hook
+  preamble: 'IMPORTANT: The user''s request matches a sonic-forge tool.
+
+    Call the tool below. Do NOT use Bash, Read, Grep, or Agent for this.
+
+    MCP server and CLI tools for sonic-forge'
+  call_prefix: mcp__prodboost__
+journeys:
+  play_music:
+    tool: starforge_audio
+    params:
+      action: music
+    description: Play music tracks beats loops background audio. Listen to songs from
+      the catalog collection library. Start a track playing. Put on some tunes jams
+      vibes. Background music while coding working. Play bytebeat chiptune lo-fi ambient
+      trance acid hip-hop. Jam out. Hear a song. Queue up audio. Music player jukebox
+      DJ set. Kick off a beat groove rhythm soundscape.
+    triggers:
+    - play some music
+    - put on a beat
+    - play me something
+    - I want to hear music
+    - background music while I work
+    - play lofi
+    - play trance
+    - play ambient
+    - kick off some tunes
+    - sonic-forge play
+    - play a track
+    - jam out
+    - put on some vibes
+    - start the music
+    - play acid
+    - play hiphop
+    - can you play a song
+    - queue up a beat
+    - sonic-forge play cosmic-dust
+    - play that bytebeat track
+    - drop a beat for me
+    - vibe check music on
+    - lemme get some jams
+    - throw on a soundtrack
+    - need coding vibes rn
+    - queue up something chill
+    - hit me with some beats
+    - got any good tracks
+    - spin something up DJ
+    - set the mood music
+  stop_audio:
+    tool: sonic-forge stop
+    params: {}
+    description: Stop halt silence kill mute all audio playback music sounds. Turn
+      off the music. Shut it down. End playback. Quiet everything. Stop all playing
+      processes afplay chuck. Kill the noise. Silence the speakers. Pause everything.
+      Mute output audio. Cease all sound immediately halt tracks.
+    triggers:
+    - stop the music
+    - turn it off
+    - shut up
+    - silence
+    - mute
+    - stop playing
+    - kill the audio
+    - quiet
+    - stop all sounds
+    - sonic-forge stop
+    - end playback
+    - halt the music
+    - enough music
+    - turn off the sound
+    - stop everything playing
+    - enough with the tunes
+    - cut the noise
+    - kill it
+    - shh make it stop
+    - too loud shut it down
+    - nah turn that off
+    - ok cool stop that
+    - done listening
+    - end the vibes
+    - pull the plug on audio
+    - cease fire on the beats
+    - wrap up the music
+    - chop the sound
+    - knock it off
+    - peace and quiet please
+  speak_text:
+    tool: starforge_audio
+    params:
+      action: speak
+    description: Speak say read aloud text-to-speech TTS voice output narrate vocalize.
+      Make the computer talk. Say this out loud. Read this to me. Announce something.
+      Voice synthesis speech generation. Speak a message sentence paragraph. Robot
+      voice droid voice helmet intercom effect. Kokoro macOS say engine. Pronounce
+      dictate utter verbalize recite.
+    triggers:
+    - say this out loud
+    - speak this
+    - read this to me
+    - text to speech
+    - make it talk
+    - say something
+    - TTS this text
+    - announce this
+    - sonic-forge speak
+    - read aloud
+    - voice this
+    - can you say
+    - speak aloud
+    - narrate this text
+    - I want to hear it not read it
+    - robot voice say
+    - tell me out loud
+    - vocalize this
+    - tell me in words
+    - voice this for me
+    - robot voice this
+    - let me hear it
+    - spit this out loud
+    - yo say this
+    - narrate this bit
+    - gimme the robot voice
+    - talk to me computer
+    - drop some voice on this
+    - helmet intercom style
+    - read it back to me
+  audio_briefing:
+    tool: starforge_audio
+    params:
+      action: briefing
+    description: Audio briefing narrated summary spoken report podcast explainer with
+      background music. AI-narrated overview recap status update. Starship briefing
+      captain's briefing mission brief. Voice summary of what's happening. Spoken
+      digest newsletter audio report. Podcast-style explanation walkthrough. Hear
+      a summary instead of reading. Audio recap rundown debrief spoken overview with
+      beats underneath.
+    triggers:
+    - give me an audio briefing
+    - starship briefing
+    - spoken summary
+    - narrate a summary
+    - audio report
+    - podcast style summary
+    - voice summary
+    - sonic-forge brief
+    - I want to hear a recap
+    - audio explainer
+    - brief me with audio
+    - mission briefing
+    - spoken overview
+    - read me the status
+    - audio digest
+    - narrated report with music
+    - talk me through it
+    - gimme the rundown with beats
+    - catch me up out loud
+    - read it to me
+    - what's the sitrep
+    - debrief me captain
+    - hit me with the highlights
+    - tldr but spoken
+    - just tell me what happened
+    - break it down for me audibly
+    - mission debrief with vibes
+    - speak the summary
+    - audio digest please
+    - lay it on me verbally
+  talking_head:
+    tool: starforge_audio
+    params:
+      action: talking_head
+    description: Talking head animated character video droid alien human avatar speaking.
+      Create a visual narration with animated face. Animated droid pixel art character
+      delivers briefing. Make a talking robot alien human present information. Video
+      with speaking avatar character animation. Animated spokesperson presenter narrator.
+      Visual audio combined character explainer. Starforge talking head droid pixel
+      alien pixel human.
+    triggers:
+    - make a talking head
+    - talking droid
+    - animated briefing
+    - create a talking head video
+    - make the droid talk
+    - talking alien
+    - animated character briefing
+    - video with a speaking avatar
+    - droid pixel talking head
+    - make a character explain this
+    - starforge talking head
+    - I want a talking robot
+    - animated narrator
+    - visual briefing with character
+    - make an alien explain it
+    - have the robot explain it
+    - gimme a talking head
+    - let the droid present this
+    - make a little video guy talk
+    - pixel dude briefing
+    - have someone narrate this
+    - talking avatar thing
+    - put a face on this briefing
+    - let the alien explain
+    - spin up a talking character
+    - robot spokesperson go
+    - animate a narrator for this
+    - have a character walk me through it
+    - droid explainer video
+    - make it a visual briefing
+  browse_catalog:
+    tool: sonic-forge catalog
+    params: {}
+    description: Browse list catalog collection library of songs tracks music available.
+      Show all tracks built-in and installed. What songs do I have. What music is
+      available. Library listing inventory. See my collection. What can I play. List
+      everything. Browse available tracks songs beats. Catalog of audio music tracks.
+      Show song list discography tracklist playlist directory.
+    triggers:
+    - what songs do I have
+    - list all tracks
+    - show the catalog
+    - what music is available
+    - browse my collection
+    - sonic-forge catalog
+    - what can I play
+    - show me all the songs
+    - list available music
+    - what's in my library
+    - show tracks
+    - song list
+    - what beats are there
+    - inventory of tracks
+    - list templates
+    - sonic-forge templates
+    - what tracks we got
+    - gimme the full tracklist
+    - lemme see my beats
+    - what's in the jukebox
+    - show me the goods
+    - pull up the playlist
+    - what tunes are loaded
+    - run down the song list
+    - browse the beats
+    - anything good to play
+    - what's on the menu music-wise
+    - inventory check on tracks
+    - got any bangers
+    - flip through my music
+  compose_music:
+    tool: sonic-forge dsl
+    params: {}
+    description: Compose create write author make build design a song track beat music.
+      Song format reference DSL syntax guide. How to write music in YAML. Synths notes
+      mini-notation sequencing. Music composition authoring creation songwriting.
+      Render a song to WAV audio file. Export song file. Build a custom beat track
+      groove. Learn the song format. Music production sound design arrangement. Genre
+      templates available styles.
+    triggers:
+    - how do I write a song
+    - show me the song format
+    - sonic-forge dsl
+    - music DSL reference
+    - how to compose
+    - song syntax guide
+    - what synths are available
+    - teach me the format
+    - I want to make a beat
+    - how do I create music
+    - sonic-forge render
+    - render my song to WAV
+    - export this song
+    - sonic-forge export
+    - mini-notation help
+    - song authoring reference
+    - lemme cook up a track
+    - drop a beat real quick
+    - how do I sequence notes
+    - whip up some music
+    - song YAML template
+    - build me a groove
+    - what genres can I make
+    - render my track to wav
+    - lay down a beat
+    - mini-notation cheat sheet
+    - craft a custom track
+    - export my song
+    - available synth sounds
+    - walk me through songwriting
+  manage_songs:
+    tool: sonic-forge install
+    params: {}
+    description: Install add save import download a song into collection library.
+      Manage songs tracks in personal library. Add new music to collection. Install
+      song file. Export copy extract a song to current directory. Song management
+      install uninstall add remove. Put a song in my library. Save this track. Download
+      install a beat. Manage my sonic-forge songs folder music files.
+    triggers:
+    - install this song
+    - add a song to my collection
+    - save this track
+    - sonic-forge install
+    - put this in my library
+    - download this song
+    - export this song file
+    - sonic-forge export
+    - add to my songs
+    - install a new track
+    - save to my collection
+    - import this song
+    - add music to library
+    - manage my songs
+    - copy song to current directory
+    - drop this beat in my library
+    - stash this track for me
+    - yoink that song
+    - keep this one save it
+    - snag that beat
+    - throw it in my collection
+    - grab this track real quick
+    - bank this song
+    - pocket that tune
+    - lemme hold onto this beat
+    - toss it in my songs folder
+    - cop that track
+    - scoop this song up
+    - file this beat away
+    - lock in this track
+  voice_effects:
+    tool: sonic-forge robotize
+    params: {}
+    description: Robot voice effect robotize droid helmet intercom filter transform
+      audio. Apply effects to WAV file audio. Make it sound like a robot droid alien
+      cyborg. Voice modulation distortion transformation filter processing. Helmet
+      voice intercom radio effect. Change voice sound effect post-processing. Audio
+      effects chain manipulation. Robotic vocoder mechanical synthetic voice styling.
+      Available voices engines TTS options.
+    triggers:
+    - robotize this audio
+    - make it sound like a robot
+    - apply droid effect
+    - sonic-forge robotize
+    - robot voice filter
+    - helmet voice effect
+    - intercom effect
+    - what voices are available
+    - sonic-forge voices
+    - list TTS voices
+    - make it sound mechanical
+    - add robot effect to this WAV
+    - voice effect processing
+    - transform the audio
+    - cyborg voice filter
+    - make me sound like a cyborg
+    - throw a robot filter on this
+    - give it that droid vibe
+    - mechanize my voice
+    - make this sound alien
+    - slap a vocoder on it
+    - tin can voice effect
+    - run it through the robot thing
+    - give it that helmet sound
+    - make me sound like a Dalek
+    - distort my voice all roboty
+    - that radio intercom sound
+    - transform this into robot speak
+    - robo filter my audio
+  ask_codebase:
+    tool: mcp__prodboost__ask
+    params: {}
+    description: Ask question about the code codebase project source. Query understand
+      explore investigate codebase. What does this code do. How does this work. Explain
+      this function module class. Search find understand code logic architecture patterns.
+      Code question inquiry lookup exploration. Understand the project structure design.
+      Ask anything about the repository source code implementation details.
+    triggers:
+    - ask about the code
+    - what does this do
+    - how does this work
+    - explain this code
+    - ask the codebase
+    - code question
+    - how is this implemented
+    - search the code
+    - what's happening in this file
+    - understand this function
+    - query the codebase
+    - code lookup
+    - tell me about this module
+    - how does this project work
+    - explain the architecture
+    - walk me through this
+    - what's the deal with this code
+    - break it down for me
+    - where's the magic happening
+    - wtf does this do
+    - gimme the tldr on this
+    - how's this thing wired up
+    - unpack this for me
+    - what's under the hood
+    - talk me through the logic
+    - where's the secret sauce
+    - this makes no sense explain
+    - dig into this code
+    - what's this function about
+    - school me on this module
