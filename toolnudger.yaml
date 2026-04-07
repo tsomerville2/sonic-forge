@@ -57,12 +57,18 @@ journeys:
     - high quality speech
     - quick say
     - sonic-forge speak
+    - tell me what this says
+    - gimme the voiceover
+    - read it back to me
+    - drop a voice note
+    - say it like a droid
+    - talk to me
   make_instrumental:
     tool: sonic-forge beat
     params: {}
-    description: Generate instrumental music with no vocals. Low quality bytebeat 8-bit
-      retro chiptune. Medium quality ChucK synthesizer ambient drone dark techno space
-      synth coding flow. High quality ACE-Step instrumental no vocals full production.
+    description: Generate instrumental music with no vocals. Low quality bytebeat
+      8-bit retro chiptune. Medium quality ChucK synthesizer ambient drone dark techno
+      space synth coding flow. High quality ACE-Step instrumental no vocals full production.
       Background music coding vibes. Create a beat. Generate a track. Make instrumental
       music. Compose background audio.
     triggers:
@@ -88,14 +94,22 @@ journeys:
     - synth track
     - no vocals just music
     - pure instrumental
+    - drop a sick beat
+    - vibes for coding please
+    - something chill in the background
+    - throw on some tunes
+    - need a soundtrack rn
+    - synth me something spacey
+    - lo-fi coding vibes
+    - cook up a track
   make_sing:
     tool: sonic-forge sing
     params: {}
     description: Generate a real song with singing vocals using ACE-Step. Radio quality
-      album quality full production with real human-sounding voice. Lyrics chorus verse
-      bridge. Suno quality AI music generation. All genres rock pop folk country jazz
-      metal electronic indie bluegrass hiphop ambient. Option for a cappella vocals
-      only no instruments. The only engine that actually sings.
+      album quality full production with real human-sounding voice. Lyrics chorus
+      verse bridge. Suno quality AI music generation. All genres rock pop folk country
+      jazz metal electronic indie bluegrass hiphop ambient. Option for a cappella
+      vocals only no instruments. The only engine that actually sings.
     triggers:
     - sing me a song
     - make a song about
@@ -123,6 +137,10 @@ journeys:
     - jazz tune with singing
     - sing this as a song
     - real singing voice
+    - belt out a track for me
+    - lay down some vocals
+    - gimme a banger with lyrics
+    - sing something fire
   animate_lip_sync:
     tool: sonic-forge speak
     params:
@@ -151,12 +169,23 @@ journeys:
     - animate a narrator
     - droid explainer video
     - character lip sync
+    - slap a face on that audio
+    - make it talk
+    - give this a mouth
+    - who's gonna say this
+    - need a talking head for this
+    - put a face on it
+    - animate someone saying this
+    - stick a droid on that
+    - face to go with the voice
+    - let the alien do the talking
+    - give it a speaking character
   apply_sound_effects:
     tool: sonic-forge robotize
     params: {}
     description: Apply sound effects to audio. Robot voice droid helmet intercom vocoder
-      bitcrush ringmod filter. Post-process existing WAV file. Make it sound like a
-      robot droid alien cyborg Mandalorian. Voice modulation effects chain. Transform
+      bitcrush ringmod filter. Post-process existing WAV file. Make it sound like
+      a robot droid alien cyborg Mandalorian. Voice modulation effects chain. Transform
       audio with effects. Helmet voice intercom radio comms effect.
     triggers:
     - robotize this
@@ -176,6 +205,19 @@ journeys:
     - transform this audio
     - apply helmet effect
     - process this WAV
+    - make me sound like a cyborg
+    - throw a robot filter on it
+    - give it that tin can vibe
+    - sound like I'm in a helmet
+    - run it through the voice mangler
+    - cyborg me up
+    - alien voice this clip
+    - make it crunchy and robotic
+    - slap some effects on my voice
+    - give it that radio comms sound
+    - distort my voice all weird
+    - put me through the meat grinder
+    - robo voice this thing
   play:
     tool: sonic-forge play
     params: {}
@@ -204,6 +246,16 @@ journeys:
     - play gameboy
     - play bytebeat
     - kick off some tunes
+    - drop some tunes
+    - let me hear that again
+    - throw on some beats
+    - vibe check music time
+    - spin something up
+    - what was that last track
+    - got any bangers
+    - soundtrack my grind
+    - queue up something chill
+    - hit me with that beat
   stop:
     tool: sonic-forge stop
     params: {}
@@ -223,6 +275,22 @@ journeys:
     - enough
     - done listening
     - knock it off
+    - enough already
+    - cut the tunes
+    - make it stop
+    - shush
+    - pipe down
+    - kill the vibe
+    - that's enough noise
+    - too loud cut it
+    - nah turn that off
+    - ok stop
+    - end that racket
+    - enough with the music
+    - hush
+    - audio off
+    - cork it
+    - zip it
   media_catalog:
     tool: sonic-forge catalog
     params: {}
@@ -246,13 +314,28 @@ journeys:
     - inventory
     - browse my collection
     - what effects are there
+    - whatcha got in the library
+    - show me what I'm working with
+    - lemme see my inventory
+    - what's in the vault
+    - pull up my media stash
+    - browse the goods
+    - what voices can I use
+    - gimme the full menu
+    - what effects are loaded
+    - show me my arsenal
+    - anything good in there
+    - what's on the shelf
+    - run down my collection
+    - what assets do I have
+    - lay out my options
   design_song_template:
     tool: sonic-forge dsl
     params: {}
     description: Creative session designing new song templates. Write music in YAML
       DSL format. Compose new ChucK pieces. Create bytebeat formulas. Song format
-      reference guide. Synths notes mini-notation. Iterate on a new composition.
-      Audition and refine. Build a new template. Music production songwriting session.
+      reference guide. Synths notes mini-notation. Iterate on a new composition. Audition
+      and refine. Build a new template. Music production songwriting session.
     triggers:
     - design a new song
     - create a song template
@@ -269,6 +352,20 @@ journeys:
     - songwriting session
     - new beat template
     - iterate on a composition
+    - jam session time
+    - sketch out some music
+    - noodle on a new song
+    - let's write some tunes
+    - whip up a beat template
+    - music writing mode
+    - tinker with a composition
+    - draft a new song idea
+    - lay down some notes
+    - song workshop time
+    - build me a synth patch
+    - new track from scratch
+    - mess around with music dsl
+    - fire up the song editor
   design_character_sprite_template:
     tool: sonic-forge character
     params: {}
@@ -291,13 +388,29 @@ journeys:
     - design a new talking head
     - character workshop
     - new visual character
+    - build me a new face
+    - whip up a character real quick
+    - need a fresh avatar
+    - yo make me a droid
+    - cook up a new talking head
+    - gimme a new character sprite
+    - new face for the show
+    - sketch out a character
+    - spin up a new avatar
+    - drop a new character in
+    - I want a pixel dude
+    - craft me an alien droid
+    - need another talking head
+    - throw together a character
+    - who's my next character
+    - let's design somebody new
   design_sound_effect_template:
     tool: sonic-forge robotize
     params: {}
-    description: Creative session designing new sound effect chains. Create a new voice
-      effect preset. Design a custom robotize chain. Build a new audio effect template.
-      Experiment with effect combinations. New helmet variant. Custom droid voice.
-      Effect design workshop. Sound design session.
+    description: Creative session designing new sound effect chains. Create a new
+      voice effect preset. Design a custom robotize chain. Build a new audio effect
+      template. Experiment with effect combinations. New helmet variant. Custom droid
+      voice. Effect design workshop. Sound design session.
     triggers:
     - design a new effect
     - create an effect preset
@@ -310,3 +423,22 @@ journeys:
     - sound design workshop
     - new effect template
     - build an effect chain
+    - let me cook up a new effect
+    - tweak a robot voice real quick
+    - gimme that cyborg sound
+    - frankenstein a new effect chain
+    - mess around with voice effects
+    - build me a droid helmet
+    - I wanna sound like a robot
+    - new robo voice who dis
+    - slap together some effects
+    - tinker with sound effects
+    - whip up a voice preset
+    - make me sound mechanical
+    - effect chain mad scientist mode
+    - throw some robot on my voice
+    - remix this voice into a droid
+    - bolt together a new effect
+    - pimp my voice effect
+    - crank out a new preset
+    - lemme play with effects
