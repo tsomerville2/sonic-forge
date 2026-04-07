@@ -1,13 +1,14 @@
 meta:
   name: sonic-forge
   mcp_server: prodboost
-  description: MCP server and CLI tools for sonic-forge
+  description: Audio production suite — songs, speech, talking heads, effects
 settings:
   trigger_words:
   - sonic-forge
   - sing
   - music
   - droid
+  - speak
   trigger_threshold: 0.3
   ambient_threshold: 0.45
   embedding_model: BAAI/bge-small-en-v1.5
@@ -20,165 +21,194 @@ nudge:
 
     Call the tool below. Do NOT use Bash, Read, Grep, or Agent for this.
 
-    MCP server and CLI tools for sonic-forge'
+    Audio production suite — songs, speech, talking heads, effects'
   call_prefix: mcp__prodboost__
 journeys:
-  sing_song:
+  make_speak:
+    tool: sonic-forge speak
+    params: {}
+    description: Speak say narrate text-to-speech TTS voice. Low quality macOS say
+      or high quality Kokoro voice. Optional background music from DSL templates at
+      low or medium quality. Briefing narration droid comms show dialogue. Read this
+      to me. Audio briefing podcast summary. Captain's briefing mission brief spoken
+      report. Say something aloud announce. Voice synthesis speech generation.
+    triggers:
+    - say this out loud
+    - speak this
+    - read this to me
+    - text to speech
+    - narrate this
+    - make it talk
+    - announce this
+    - give me an audio briefing
+    - spoken summary
+    - brief me
+    - mission briefing
+    - read me the status
+    - podcast style summary
+    - voice summary
+    - catch me up out loud
+    - news brief
+    - debrief me
+    - narrate a summary
+    - audio report
+    - talk to me computer
+    - say this in kokoro
+    - high quality speech
+    - quick say
+    - sonic-forge speak
+  make_instrumental:
+    tool: sonic-forge beat
+    params: {}
+    description: Generate instrumental music with no vocals. Low quality bytebeat 8-bit
+      retro chiptune. Medium quality ChucK synthesizer ambient drone dark techno space
+      synth coding flow. High quality ACE-Step instrumental no vocals full production.
+      Background music coding vibes. Create a beat. Generate a track. Make instrumental
+      music. Compose background audio.
+    triggers:
+    - make some instrumental music
+    - generate a beat
+    - make background music
+    - create an instrumental
+    - bytebeat something
+    - 8-bit music
+    - chiptune track
+    - make a chuck song
+    - ambient drone
+    - dark techno instrumental
+    - space synth
+    - coding flow music
+    - generate a retro beat
+    - make some coding vibes
+    - instrumental track
+    - compose a beat
+    - sonic-forge beat
+    - make me a lo-fi beat
+    - create some background audio
+    - synth track
+    - no vocals just music
+    - pure instrumental
+  make_sing:
     tool: sonic-forge sing
     params: {}
-    description: Generate a real high-quality song with vocals and instruments using
-      ACE-Step. Radio quality album quality full production. Sing a song with lyrics.
-      Make music with singing vocals. Create an original song. Generate a track with
-      real instruments and voice. Suno quality AI music generation. Song with lyrics
-      chorus verse. Instrumental version no vocals. A cappella vocals only. Rock pop
-      folk country jazz metal electronic indie bluegrass hiphop ambient.
+    description: Generate a real song with singing vocals using ACE-Step. Radio quality
+      album quality full production with real human-sounding voice. Lyrics chorus verse
+      bridge. Suno quality AI music generation. All genres rock pop folk country jazz
+      metal electronic indie bluegrass hiphop ambient. Option for a cappella vocals
+      only no instruments. The only engine that actually sings.
     triggers:
     - sing me a song
     - make a song about
-    - generate a song
-    - create a track with vocals
+    - generate a song with vocals
     - sing something
     - I want a real song
     - make me a song with lyrics
     - sonic-forge sing
-    - generate music with vocals
     - write and sing a song
     - album quality song
     - radio quality track
     - full production song
+    - a cappella vocals
+    - vocals only no instruments
     - make a pop song
     - make a rock song
     - make a country song
     - sing about
-    - original song with instruments
     - ACE-Step song
-    - high quality music
     - song with chorus and verse
-    - instrumental track no vocals
-    - a cappella version
-    - make a bluegrass song
     - europop banger
-    - generate a jazz tune
-    - make an indie track
-    - electronic song with vocals
-    - ambient song no lyrics
-    - hiphop track
-    - metal song
     - folk song about
-    - sing this text as a song
-  talking_head:
-    tool: starforge_audio
+    - hiphop track with vocals
+    - metal song
+    - jazz tune with singing
+    - sing this as a song
+    - real singing voice
+  animate_lip_sync:
+    tool: sonic-forge speak
     params:
-      action: talking_head
-    description: Create talking droid alien human animation. Narrated audio briefing
-      with music and animated character. Spoken summary podcast style explainer. Make
-      the ship computer talk. Audio report. I want to hear it not read it. Starship
-      briefing. Voice summary. Say something aloud. Text to speech. Speak this. Robot
-      voice helmet intercom droid voice. Pixel art character animation. Droid that
-      talks to me. Speaking avatar character for the show. Animated spokesperson.
+      visual: droid
+    description: Attach talking head animation to audio. Animated character lip synced
+      to speech or song. Droid alien human avatar speaking. Pixel art character animation.
+      Visual narration with animated face. Make a talking droid alien human for the
+      show. Video with speaking character. Any audio plus animated character on top.
     triggers:
     - make a talking head
     - talking droid
-    - create a talking droid
-    - animated briefing
+    - animate this with a character
+    - lip sync a character
+    - put a talking head on this
     - make the droid talk
     - talking alien
-    - droid pixel talking head
-    - make a character explain this
-    - I want a talking robot
-    - animated narrator
+    - droid pixel animation
     - visual briefing with character
-    - make an alien explain it
-    - have the robot explain it
+    - animated narrator
+    - I want a talking robot
     - let the droid present this
-    - pixel dude briefing
-    - talking avatar
-    - put a face on this briefing
-    - let the alien explain
-    - spin up a talking character
-    - robot spokesperson
-    - animate a narrator
-    - droid explainer
-    - make it a visual briefing
-    - make a droid that talks
-    - show droid
+    - put a face on this
     - droid for my show
-    - character that speaks
-  audio_briefing:
-    tool: starforge_audio
-    params:
-      action: briefing
-    description: Audio briefing narrated summary spoken report with background music.
-      AI-narrated overview recap status update. Starship briefing captain's briefing
-      mission brief. Voice summary of what's happening. Spoken digest newsletter audio
-      report. Podcast-style explanation walkthrough. Hear a summary instead of reading.
-      Audio recap rundown debrief spoken overview with beats underneath. News brief.
+    - make a character deliver this
+    - talking avatar
+    - animate a narrator
+    - droid explainer video
+    - character lip sync
+  apply_sound_effects:
+    tool: sonic-forge robotize
+    params: {}
+    description: Apply sound effects to audio. Robot voice droid helmet intercom vocoder
+      bitcrush ringmod filter. Post-process existing WAV file. Make it sound like a
+      robot droid alien cyborg Mandalorian. Voice modulation effects chain. Transform
+      audio with effects. Helmet voice intercom radio comms effect.
     triggers:
-    - give me an audio briefing
-    - starship briefing
-    - spoken summary
-    - narrate a summary
-    - audio report
-    - podcast style summary
-    - voice summary
-    - brief me with audio
-    - mission briefing
-    - read me the status
-    - narrated report with music
-    - catch me up out loud
-    - what's the sitrep
-    - debrief me captain
-    - news brief
-    - tldr but spoken
-    - just tell me what happened
-    - audio digest
-    - lay it on me verbally
-    - mission debrief with vibes
-  play_retro:
-    tool: starforge_audio
-    params:
-      action: music
-    description: Play retro droney ambient background music. ChucK synthesizer tracks.
-      Bytebeat chiptune lo-fi coding music. Dark ambient space synth coding flow.
-      Drone music coding vibes. Background beats while working. Play a track from
-      the catalog. Retro game music gameboy. Singing bowls meditation. Dark techno.
-      Ambient drone soundscape.
+    - robotize this
+    - apply droid effect
+    - sonic-forge robotize
+    - helmet voice effect
+    - intercom effect
+    - make it sound like a robot
+    - droid voice filter
+    - mandalorian voice
+    - vocoder effect
+    - bitcrush this
+    - add effects to this audio
+    - robot filter
+    - tin can voice
+    - radio comms effect
+    - transform this audio
+    - apply helmet effect
+    - process this WAV
+  play:
+    tool: sonic-forge play
+    params: {}
+    description: Play existing audio track song music. Replay something already generated.
+      Listen to a track from the catalog. Put on coding music. Background music while
+      working. Play a ChucK track bytebeat song or rendered composition. Replay a
+      briefing or song. Start playback.
     triggers:
     - play some music
-    - put on a beat
-    - play me something
-    - background music while I work
-    - play lofi
-    - play trance
-    - play ambient
-    - play acid
-    - play hiphop
     - play a track
-    - play dark ambient
-    - play coding music
-    - play space synth
-    - play bytebeat
-    - play chiptune
-    - play singing bowls
+    - put on coding music
+    - play ambient
+    - play trance
     - play dark techno
-    - drone music
-    - coding vibes
-    - retro beats
-    - play gameboy
-    - chuck music
+    - play space synth
+    - sonic-forge play
+    - play that song
+    - replay that
+    - listen to a track
+    - put on background music
+    - play lofi
+    - play singing bowls
+    - play coding flow
     - start the music
     - jam out
-    - put on some vibes
+    - play gameboy
+    - play bytebeat
     - kick off some tunes
-    - sonic-forge play
-    - need coding vibes
-    - throw on a soundtrack
-  stop_audio:
+  stop:
     tool: sonic-forge stop
     params: {}
     description: Stop halt silence kill mute all audio playback music sounds. Turn
-      off the music. Shut it down. End playback. Quiet everything. Stop all playing.
-      Kill the noise. Silence. Pause everything. Mute. Cease all sound.
+      off the music. Shut it down. End playback. Quiet everything. Kill the noise.
     triggers:
     - stop the music
     - turn it off
@@ -188,114 +218,95 @@ journeys:
     - stop playing
     - kill the audio
     - quiet
-    - stop all sounds
     - sonic-forge stop
     - kill it
     - enough
     - done listening
-    - pull the plug
     - knock it off
-  voice_droid:
-    tool: sonic-forge robotize
-    params: {}
-    description: Robot voice effect robotize droid helmet intercom filter. Apply effects
-      to audio WAV file. Make it sound like a robot droid alien cyborg Mandalorian.
-      Helmet voice intercom radio comms effect. Vocoder mechanical synthetic voice.
-      Droid voice for the show. Character voice effects. Bitcrush ringmod. Available
-      voices TTS engines options.
-    triggers:
-    - robotize this
-    - make it sound like a robot
-    - apply droid effect
-    - sonic-forge robotize
-    - robot voice filter
-    - helmet voice effect
-    - intercom effect
-    - what voices are available
-    - droid voice
-    - mandalorian voice
-    - make me sound like a droid
-    - cyborg voice
-    - vocoder effect
-    - tin can voice
-    - helmet sound
-    - radio comms effect
-    - mechanize my voice
-    - robot filter
-    - bitcrush my voice
-    - list TTS voices
-    - sonic-forge voices
-  speak_text:
-    tool: starforge_audio
-    params:
-      action: speak
-    description: Speak say read aloud text-to-speech TTS voice output narrate. Make
-      the computer talk. Say this out loud. Read this to me. Voice synthesis. Kokoro
-      macOS say engine. Plain TTS without animation or music.
-    triggers:
-    - say this out loud
-    - speak this
-    - read this to me
-    - text to speech
-    - make it talk
-    - TTS this
-    - announce this
-    - read aloud
-    - narrate this text
-    - let me hear it
-    - sonic-forge speak
-    - talk to me computer
-  browse_catalog:
+  media_catalog:
     tool: sonic-forge catalog
     params: {}
-    description: Browse list catalog collection library of songs tracks music available.
-      Show all tracks. What songs do I have. What music is available. Library inventory.
-      What can I play. Song list tracklist directory. Templates available.
+    description: Browse catalog of available media. List songs tracks characters voices
+      templates effects. What do I have. What music is available. What talking heads
+      exist. Available voices engines. Show everything. Library inventory. What can
+      I play. What characters are installed.
     triggers:
     - what songs do I have
-    - list all tracks
     - show the catalog
     - what music is available
     - sonic-forge catalog
     - what can I play
-    - show me all the songs
+    - list all tracks
+    - what characters do I have
+    - available voices
     - list templates
-    - what tracks we got
-    - what's in the jukebox
-    - got any bangers
-    - browse the beats
-  compose_music:
+    - what talking heads exist
+    - show my library
+    - what's available
+    - inventory
+    - browse my collection
+    - what effects are there
+  design_song_template:
     tool: sonic-forge dsl
     params: {}
-    description: Compose create write a song in YAML DSL format. Song syntax reference
-      guide. How to write music. Synths notes mini-notation. Music composition songwriting.
-      Render song to WAV. Build a custom track. Genre templates styles.
+    description: Creative session designing new song templates. Write music in YAML
+      DSL format. Compose new ChucK pieces. Create bytebeat formulas. Song format
+      reference guide. Synths notes mini-notation. Iterate on a new composition.
+      Audition and refine. Build a new template. Music production songwriting session.
     triggers:
-    - how do I write a song
-    - song format reference
+    - design a new song
+    - create a song template
+    - I want to compose something new
     - sonic-forge dsl
-    - music DSL
-    - how to compose
-    - I want to make a beat
-    - sonic-forge render
-    - render my song to WAV
-    - mini-notation help
-    - build me a groove
-    - what genres can I make
-    - lay down a beat
-    - craft a custom track
-  ask_codebase:
-    tool: mcp__prodboost__ask
+    - song format reference
+    - write a new ChucK piece
+    - make a new bytebeat formula
+    - creative music session
+    - compose a new template
+    - how do I write a song
+    - music DSL reference
+    - let's make something new musically
+    - songwriting session
+    - new beat template
+    - iterate on a composition
+  design_character_sprite_template:
+    tool: sonic-forge character
     params: {}
-    description: Ask question about sonic-forge code codebase project source. Query
-      understand explore investigate. What does this code do. How does this work.
-      Explain function module class. Code question.
+    description: Creative session designing new talking head characters. Make a new
+      droid alien human character for the show. Generate or import a spritesheet.
+      Design a visual character. Create a new talking head avatar. Character design
+      workshop. Spritesheet creation. New droid for my show.
     triggers:
-    - ask about the code
-    - what does this do
-    - how does this work
-    - explain this code
-    - ask the codebase
-    - how is this implemented
-    - tell me about this module
-    - how does sonic-forge work
+    - make a new character
+    - design a talking head
+    - create a new droid
+    - sonic-forge character
+    - new character for my show
+    - design a sprite
+    - generate a spritesheet
+    - character design session
+    - I need a new droid
+    - make an alien character
+    - create a new avatar
+    - design a new talking head
+    - character workshop
+    - new visual character
+  design_sound_effect_template:
+    tool: sonic-forge robotize
+    params: {}
+    description: Creative session designing new sound effect chains. Create a new voice
+      effect preset. Design a custom robotize chain. Build a new audio effect template.
+      Experiment with effect combinations. New helmet variant. Custom droid voice.
+      Effect design workshop. Sound design session.
+    triggers:
+    - design a new effect
+    - create an effect preset
+    - new voice effect
+    - custom robotize chain
+    - effect design session
+    - experiment with effects
+    - make a new helmet variant
+    - custom droid voice design
+    - sound design workshop
+    - new effect template
+    - build an effect chain
