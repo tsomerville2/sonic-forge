@@ -978,6 +978,67 @@ def beat_cmd(
         os.remove(out_path)
 
 
+@app.command("narrate")
+def narrate_cmd(
+    input_path: str = typer.Argument(..., help="Text file with paragraphs separated by blank lines. Supports [pause: label] and [pause: 1.2] markup. Use '-' for stdin."),
+    output: str = typer.Argument(..., help="Target WAV path. Manifest emitted alongside at OUTPUT.timing.json (unless --no-manifest)."),
+    voice: Optional[str] = typer.Option(None, "--voice", "-v", help="Voice short name or full ID. Defaults: af_heart for kokoro, natural choice per lang otherwise."),
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Auto-pick engine + voice by language (telugu, hindi, english, french, ...)."),
+    engine: Optional[str] = typer.Option(None, "--engine", "-e", help="Force engine: say / kokoro / edge. Auto-picked if omitted."),
+    phonics: Optional[str] = typer.Option(None, "--phonics", help="JSON file of word→pronunciation replacements applied before TTS. Optional."),
+    seed: Optional[int] = typer.Option(None, "--seed", help="Seed pause-pool randomness for reproducibility."),
+    fps: int = typer.Option(30, "--fps", help="Frame rate assumed for manifest total_frames."),
+    no_manifest: bool = typer.Option(False, "--no-manifest", help="Skip the *.timing.json output."),
+    sample_rate: int = typer.Option(24000, "--sample-rate", help="Output sample rate in Hz."),
+) -> None:
+    """Produce a long-form narration WAV + timing manifest.
+
+    Paragraph-chunked TTS with ffmpeg-generated silence between paragraphs.
+    Pause pools (tiny/short/medium/long/xlong) give natural variation, and
+    the emitted `*.timing.json` lets Remotion/DaVinci align visuals to audio.
+
+    Markup inside the input file:
+      Blank lines → default medium pause.
+      [pause: short]   → pick from the short pool.
+      [pause: xlong]   → pick from the xlong pool.
+      [pause: 1.2]     → 1.2s ± 15% jitter.
+
+    English, default Kokoro voice:
+      sonic-forge narrate script.txt narration.wav --voice am_fenrir
+
+    With phonics dictionary (project-specific word fixups):
+      sonic-forge narrate script.txt narration.wav --phonics ./phonics.json
+
+    Reproducible pause timing:
+      sonic-forge narrate script.txt narration.wav --seed 608
+
+    Telugu via edge-tts (Kokoro can't do Telugu):
+      sonic-forge narrate script.txt narration.wav --lang telugu
+
+    From stdin:
+      cat script.txt | sonic-forge narrate - narration.wav
+    """
+    from sonic_forge.narrate import narrate as do_narrate
+
+    try:
+        do_narrate(
+            input_path=input_path,
+            output_path=output,
+            voice=voice,
+            engine=engine,
+            lang=lang,
+            phonics=phonics,
+            seed=seed,
+            fps=fps,
+            sample_rate=sample_rate,
+            write_manifest=not no_manifest,
+            verbose=True,
+        )
+    except RuntimeError as e:
+        print(f"\n  {e}\n")
+        raise typer.Exit(1)
+
+
 @app.command("kokoro-prep")
 def kokoro_prep_cmd(
     input_file: str = typer.Argument(..., help="Path to plain text script file."),

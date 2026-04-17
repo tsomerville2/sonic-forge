@@ -1,5 +1,15 @@
 """Kokoro Script Converter — transform plain scripts into Kokoro-optimized narration.
 
+LEGACY / AUDIOBOOK AESTHETIC:
+    This is the stacked-punctuation approach (BREATH = "." * 6, etc.) — it
+    makes Kokoro produce "ehhh/mmmm" vocal-filler artifacts which some
+    audiobook-style content actually wants.
+
+    For production narration with CONTROLLED silence and a timing manifest
+    (for video alignment in Remotion/DaVinci), use `sonic-forge narrate`
+    instead. That command chunks paragraphs, inserts ffmpeg-generated
+    silence, and emits `<output>.timing.json`.
+
 Inserts punctuation-based pause control and optional filler words to make
 Kokoro-82M narration sound natural with proper pacing and breathing.
 
