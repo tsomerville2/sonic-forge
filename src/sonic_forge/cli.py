@@ -225,8 +225,9 @@ def robotize_cmd(
 def speak_cmd(
     topic: Optional[str] = typer.Argument(None, help="Topic for AI to write about, or literal text with --text."),
     text: Optional[str] = typer.Option(None, "--text", "-T", help="Speak literal text (no AI). Overrides topic."),
-    voice: Optional[str] = typer.Option(None, "--voice", "-v", help="Voice name (af_heart, Samantha, Zarvox...)."),
-    engine: Optional[str] = typer.Option(None, "--engine", "-e", help="TTS engine: say, kokoro."),
+    voice: Optional[str] = typer.Option(None, "--voice", "-v", help="Voice name: short (onyx, heart, bella), full (af_heart), edge (te-IN-MohanNeural), or gender (male/female with --lang)."),
+    engine: Optional[str] = typer.Option(None, "--engine", "-e", help="TTS engine: say, kokoro, edge."),
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Language: telugu, hindi, french, spanish, etc. Auto-picks best engine."),
     fx: Optional[str] = typer.Option(None, "--fx", help="Robot FX: helmet, intercom, droid, ringmod, bitcrush."),
     rate: Optional[int] = typer.Option(None, "--rate", help="Speech rate in WPM (macOS say)."),
     output: Optional[str] = typer.Option(None, "-o", "--output", help="Save WAV to this path."),
@@ -235,24 +236,58 @@ def speak_cmd(
     music: bool = typer.Option(False, "--music", help="Add bytebeat music backing (briefing mode)."),
     template: Optional[str] = typer.Option(None, "--template", "-t", help="Music template when --music is used: cinematic, ambient, lofi, trance, acid, hiphop, minimal, anthem."),
 ) -> None:
-    """Speak text aloud — plain TTS, or with music backing.
+    """Speak text aloud — plain TTS, with optional music, FX, or talking heads.
 
-    Plain speech:
+    Quick start (macOS say, default voice):
       sonic-forge speak --text "Hello world"
+
+    Pick a voice by short name (Kokoro-82M, local, high quality):
+      sonic-forge speak --text "Hello" --voice onyx        # deep male
+      sonic-forge speak --text "Hello" --voice heart       # warm female
+      sonic-forge speak --text "Hello" --voice bella       # friendly female
+      sonic-forge speak --text "Hello" --voice george      # British male
+      sonic-forge speak --text "Hello" --voice emma        # British female
+
+    Non-English languages (auto-picks best engine — Kokoro if available, Edge otherwise):
+      sonic-forge speak --text "Bonjour le monde" --lang french
+      sonic-forge speak --text "Hola mundo" --lang spanish
+      sonic-forge speak --text "नमस्ते दुनिया" --lang hindi
+      sonic-forge speak --text "మా CICD పైప్‌లైన్" --lang telugu     # Edge (Kokoro can't)
+      sonic-forge speak --text "வணக்கம்" --lang tamil                # Edge
+      sonic-forge speak --text "こんにちは" --lang japanese
+      sonic-forge speak --text "مرحبا" --lang arabic                 # Edge
+
+    Pick gender within a language:
+      sonic-forge speak --text "Hello" --lang english --voice female
+      sonic-forge speak --text "తెలుగు" --lang telugu --voice female
+
+    Save to WAV (for video narration):
+      sonic-forge speak --text "Welcome" --voice onyx -o intro.wav --no-play
+      sonic-forge speak --text "హలో" --lang telugu -o hello-te.wav --no-play
+
+    Robot/comms effects:
       sonic-forge speak --text "Captain on deck" --fx helmet
-      sonic-forge speak --text "Systems online" --visual droid
+      sonic-forge speak --text "Copy that" --voice fenrir --fx intercom
+      sonic-forge speak --text "Systems online" --fx droid
 
     AI-written briefing (needs Claude, Gemini, or Ollama):
       sonic-forge speak "boost crew morale"
-      sonic-forge speak "mission status" --fx helmet --voice heart --engine kokoro
+      sonic-forge speak "mission status" --voice onyx --fx helmet
 
-    With music backing (replaces the old 'brief' command):
+    With bytebeat music backing:
       sonic-forge speak "status update" --music
-      sonic-forge speak "mission log" --music --template ambient --visual droid
-      sonic-forge speak --text "All systems go." --music --template trance
+      sonic-forge speak "mission log" --music --template ambient
+      sonic-forge speak --text "All systems go" --music --template trance
 
     Talking head animation:
       sonic-forge speak --text "Greetings" --visual alien:pixel:nes --fx helmet
+      sonic-forge speak --text "Hello crew" --voice michael --visual droid
+
+    See all voices:
+      sonic-forge voices                         # everything
+      sonic-forge voices --engine kokoro         # 27 English voices
+      sonic-forge voices --engine edge           # 20 languages (cloud, free)
+      sonic-forge voices --lang telugu           # Telugu-capable voices only
     """
     if music:
         # Music mode — render speech over bytebeat backing track
@@ -284,8 +319,19 @@ RULES: Max 50 words. Written for the ear. Plain English. Punchy and direct."""
             actual_text = topic
 
     from sonic_forge.tts import speak
-    speak(actual_text, engine=engine, voice=voice, rate=rate, fx=fx,
-          output_path=output, play=not no_play, visual=visual)
+    if visual:
+        # Generate WAV first, then play with talking head
+        import tempfile
+        wav_path = output or tempfile.mktemp(suffix=".wav")
+        speak(actual_text, engine=engine, voice=voice, lang=lang, rate=rate, fx=fx,
+              output_path=wav_path, play=False)
+        _play_file_with_visual(wav_path, visual)
+        if not output:
+            import os
+            os.remove(wav_path)
+    else:
+        speak(actual_text, engine=engine, voice=voice, lang=lang, rate=rate, fx=fx,
+              output_path=output, play=not no_play)
 
 
 def _speak_with_music(topic, text, voice, engine, fx, template, output, visual):
@@ -386,24 +432,39 @@ STRICT RULES:
 
 @app.command("voices")
 def voices_cmd(
-    engine: Optional[str] = typer.Option(None, "--engine", "-e", help="Filter by engine: say, kokoro."),
-    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Filter by language code (e.g. en, de, ja, zh)."),
+    engine: Optional[str] = typer.Option(None, "--engine", "-e", help="Filter by engine: say, kokoro, edge."),
+    lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Filter by language (telugu, hindi, french, en, de, etc.)."),
 ) -> None:
-    """List available TTS voices by engine.
+    """List available TTS voices by engine and/or language.
 
-    sonic-forge voices
-    sonic-forge voices --engine say
-    sonic-forge voices --engine kokoro
-    sonic-forge voices --engine say --lang en
-    sonic-forge voices --engine say --lang de
+    All voices (3 engines):
+      sonic-forge voices
+
+    By engine:
+      sonic-forge voices --engine say       # 184 macOS voices (offline, basic)
+      sonic-forge voices --engine kokoro    # 27 English voices (offline, high quality)
+      sonic-forge voices --engine edge      # 20 languages (cloud, free, great quality)
+
+    By language:
+      sonic-forge voices --lang telugu      # shows which engines have Telugu
+      sonic-forge voices --lang hindi       # Kokoro + Edge both available
+      sonic-forge voices --lang en          # English voices across engines
+
+    Kokoro covers: English (US+UK), Spanish, French, Hindi, Italian,
+                   Japanese, Portuguese, Chinese.
+    Edge adds: Telugu, Tamil, Kannada, Malayalam, Bengali, Marathi,
+               Gujarati, Korean, German, Arabic, Russian, and more.
     """
     show_say = engine is None or engine == "say"
     show_kokoro = engine is None or engine == "kokoro"
+    show_edge = engine is None or engine == "edge"
 
     if show_say:
         _list_say_voices(lang)
     if show_kokoro:
         _list_kokoro_voices(lang)
+    if show_edge:
+        _list_edge_voices(lang)
 
 
 def _list_say_voices(lang_filter=None):
@@ -520,6 +581,41 @@ def _list_kokoro_voices(lang_filter=None):
         for voice_id, display_name in voices:
             print(f"    {voice_id:<18} {display_name:<14} --engine kokoro --voice {voice_id}")
     print()
+
+
+def _list_edge_voices(lang_filter=None):
+    """List Edge-TTS languages (simplified — shows --lang + male/female pattern)."""
+    import shutil
+    from sonic_forge.tts import _EDGE_LANGUAGES
+
+    available = shutil.which("edge-tts") is not None
+    status = "" if available else " [not installed — run: pipx install edge-tts]"
+    print(f"\n  Edge-TTS — {len(_EDGE_LANGUAGES)} languages (Microsoft Neural voices){status}")
+
+    # Normalize lang filter: accept both "telugu" and "te" style
+    if lang_filter:
+        lf = lang_filter.lower()
+        # Try exact language name first
+        matches = {k: v for k, v in _EDGE_LANGUAGES.items() if k == lf}
+        # Then try locale prefix match (e.g. "te" matches "te-IN")
+        if not matches:
+            matches = {k: v for k, v in _EDGE_LANGUAGES.items() if v[0].lower().startswith(lf)}
+        if not matches:
+            print(f"  No Edge voice for language '{lang_filter}'")
+            print(f"  Try: {', '.join(list(_EDGE_LANGUAGES.keys())[:8])}...")
+            return
+        langs = matches
+    else:
+        langs = _EDGE_LANGUAGES
+
+    print(f"  {'Language':<14} {'Locale':<8} {'Usage'}")
+    print(f"  {'─' * 14} {'─' * 8} {'─' * 50}")
+    for name, (locale, male, female) in langs.items():
+        print(f"  {name:<14} {locale:<8} --lang {name}  (male default, or --voice female)")
+    print()
+    if not lang_filter:
+        print("  Tip: 'sonic-forge speak --text \"hello\" --lang telugu' picks a male voice by default.")
+        print("       Add --voice female to switch, or --voice <full-edge-id> for a specific voice.\n")
 
 
 @app.command("testmodel")
@@ -880,6 +976,56 @@ def beat_cmd(
         os.remove(yaml_path)
     if not output and os.path.exists(out_path):
         os.remove(out_path)
+
+
+@app.command("kokoro-prep")
+def kokoro_prep_cmd(
+    input_file: str = typer.Argument(..., help="Path to plain text script file."),
+    output: Optional[str] = typer.Option(None, "-o", "--output", help="Save optimized script to file."),
+    mode: str = typer.Option("simple", "--mode", "-m", help="Conversion mode: simple (rule-based) or smart (LLM-enhanced)."),
+    pace: str = typer.Option("normal", "--pace", "-p", help="Pacing: slow, normal, or fast."),
+    speak: bool = typer.Option(False, "--speak", "-s", help="Generate audio with Kokoro after conversion."),
+    voice: str = typer.Option("am_onyx", "--voice", "-v", help="Kokoro voice for --speak."),
+    audio_output: Optional[str] = typer.Option(None, "--audio", "-a", help="Save audio WAV to this path (implies --speak)."),
+) -> None:
+    """Convert a plain script to Kokoro-optimized narration with pauses.
+
+    Inserts punctuation-based pause control that Kokoro interprets as
+    natural breathing, thinking pauses, and section breaks.
+
+    Rule-based (no dependencies):
+      sonic-forge kokoro-prep script.txt
+      sonic-forge kokoro-prep script.txt -o optimized.txt
+      sonic-forge kokoro-prep script.txt --pace slow
+
+    LLM-enhanced (needs claude or ollama):
+      sonic-forge kokoro-prep script.txt --mode smart
+
+    Convert and speak:
+      sonic-forge kokoro-prep script.txt --speak
+      sonic-forge kokoro-prep script.txt --speak -v af_aoede
+      sonic-forge kokoro-prep script.txt -a output.wav
+    """
+    from sonic_forge.kokoro_prep import prep_script
+
+    text = Path(input_file).read_text()
+    print(f"\n  Converting script ({len(text)} chars, mode={mode}, pace={pace})...")
+
+    result = prep_script(text, mode=mode, pace=pace)
+
+    if output:
+        Path(output).write_text(result)
+        print(f"  Saved: {output}")
+    else:
+        print(f"\n--- Kokoro-optimized script ---\n")
+        print(result)
+        print(f"\n--- End ({len(result)} chars) ---\n")
+
+    if speak or audio_output:
+        from sonic_forge.tts import speak as do_speak
+        wav_path = audio_output or None
+        print(f"  Speaking with Kokoro ({voice})...")
+        do_speak(result, voice=voice, engine="kokoro", output_path=wav_path, play=not bool(audio_output))
 
 
 if __name__ == "__main__":

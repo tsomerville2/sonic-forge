@@ -57,6 +57,115 @@ topics:
   - commands
   - reference
 entries:
+  - date: '2026-04-17'
+    stardate: '2026.107'
+    type: discovery
+    impact: high
+    title: >-
+      sonic-forge v0.5.2: added edge-tts as third TTS engine alongside macOS say
+      and Kokoro-82M, giving CLI coverage of 20+ languages including Telugu,
+      Tamil, Kannada, Malayalam, Marathi, Bengali, Gujarati, Korean, Arabic, and
+      Russian — languages Kokoro cannot handle. Introduced resolve_voice()
+      function mapping human-friendly inputs (--voice onyx, --lang telugu,
+      --voice female) to correct engine + full voice ID. Priority ladder: (1)
+      --lang auto-picks engine, preferring Kokoro locally for its 8 supported
+      languages and falling back to Edge for everything else; (2) full edge IDs
+      auto-detected; (3) Kokoro shortnames (onyx → am_onyx, heart → af_heart)
+      expand; (4) Kokoro prefixes pass through; (5) explicit --engine uses its
+      default; (6) fallback to macOS say. Edge-TTS is Microsoft's Edge browser
+      Read Aloud API reverse-engineered into a pip package (pipx install
+      edge-tts) — no API key, completely free. Produces MP3 → we convert to WAV
+      via ffmpeg for FX/mixing pipeline compatibility. Commercial insight: every
+      major TTS vendor is racing to $0 on serving (Microsoft gives Edge voices
+      free to push browser, Google gives 1M chars/month free Cloud TTS, Amazon
+      Polly 5M chars/month, Meta open-sourced MMS-TTS for 1,100 languages,
+      AI4Bharat open-sourced IndicTTS for 22 Indian languages). Recommended
+      three-engine stack with IndicTTS as future local fallback if Edge ever
+      disappears. Files changed: src/sonic_forge/tts.py (added _edge_to_wav,
+      resolve_voice, _KOKORO_SHORTNAMES, _EDGE_LANGUAGES, _KOKORO_LANGUAGES;
+      updated speak() and generate_to_wav() to accept lang=), src/sonic_forge/
+      cli.py (added --lang to speak_cmd, added _list_edge_voices, updated
+      voices_cmd, rewrote help text with realistic examples). 14/14 resolver
+      unit tests pass. End-to-end verified for Telugu, Tamil, and Kokoro
+      shortnames. Triggered by HCSP client wanting Telugu training narration;
+      Kokoro silently mispronounced Telugu script. Full write-up in
+      /Users/t/dev/sonic-forge/diary/2026-04-17-edge-tts-integration.md —
+      includes complete landscape survey, 20-language Edge catalog with voice
+      IDs, 27 Kokoro shortname mappings, Tamil-vs-Telugu linguistic aside, and
+      open items (IndicTTS integration, voice cloning via F5/XTTS, SSML
+      support, segment-gap helper).
+  - date: '2026-04-14'
+    stardate: '2026.104'
+    type: human
+    impact: medium
+    title: >-
+      MAJOR DISCOVERY: Kokoro pause/emotion control via punctuation stacking —
+      complete findings. PERIODS: kick in at 1-2 count (0.3s), scale to 32 (2.3s
+      peak), collapse at 64. "mmmm" thinking vocalization appears at 16+.
+      EXCLAMATION MARKS: kick in at 4 count, scale past periods — 128 = 2.4s
+      longest gap / 4.5s total quiet zone. Degrade gracefully at 256 (3.6s
+      still). COMMAS: clean pauses, similar to periods. SEMICOLONS: produce
+      digital artifacts, avoid. DASHES: produce growly sounds, avoid. OPTIMAL
+      STRATEGY: Use periods x4-8 for breath pauses, periods x16-32 for thinking
+      pauses, exclamation marks x64-128 for long contemplation. Chain periods
+      then exclamation marks for maximum range. Filler words (hee hee, heh, tsk,
+      yikes, sheesh, phew, oh, ahhh) work naturally. Repeated consonants (mmmmm,
+      hhhh, nnnn) get spelled out letter-by-letter — avoid. This is undocumented
+      emergent behavior in Kokoro-82M that enables expressive narration without
+      switching engines.
+  - date: '2026-04-14'
+    stardate: '2026.104'
+    type: human
+    impact: medium
+    title: >-
+      DISCOVERY: Kokoro punctuation pause control — full results. PERIODS (.) =
+      cleanest pause, scales well 4-32, produces "mmmm" thinking sound at 16+.
+      COMMAS (,) = also clean, good pause scaling. SEMICOLONS (;) = produce
+      computerized/digital artifacts at higher counts, avoid. DASHES (—) =
+      produce growly/guttural sounds at scale, avoid. MIXED (.;,—) = also
+      growly, avoid. RECOMMENDATION: Use packed periods only for pause control
+      in Kokoro. Normal scripts need multiple periods to slow down delivery —
+      Kokoro default pace is too fast for narration. Sweet spot: 4-8 periods for
+      breath pauses, 16 for thinking pauses, 32 max before collapse. Next test:
+      chaining period blocks with filler words or spaces to create arbitrarily
+      long pauses.
+  - date: '2026-04-14'
+    stardate: '2026.104'
+    type: human
+    impact: medium
+    title: >-
+      DISCOVERY UPDATE: Kokoro pause scaling with packed periods — confirmed
+      with energy analysis. Pauses DO scale exponentially up to 32 periods then
+      collapse at 64. Measured gaps: 1 period=0.3s, 2=0.3s, 4=0.5s, 8=0.7s,
+      16=1.6s (with emergent "mmmm" thinking vocalization), 32=2.3s (with
+      multiple humming waves). At 64 periods the model collapses back to 0.3s —
+      it gives up. Sweet spot is 8-32 packed periods for controllable pauses.
+      The "mmmm" thinking sound appears at 16+ periods — Kokoro is hallucinating
+      contemplation from dense punctuation. This is a reliable, repeatable pause
+      control mechanism for Kokoro narration.
+  - date: '2026-04-14'
+    stardate: '2026.104'
+    type: human
+    impact: medium
+    title: >-
+      DISCOVERY: Kokoro pause/emotion hack — consecutive periods (....) cause
+      Kokoro to produce a low 'mmmm' thinking sound, like a person
+      contemplating. Exponential periods (1,2,4,8,16,32,64) create progressively
+      longer pauses WITH this vocal thinking effect. Most emotional thing Kokoro
+      has done — it's not a documented feature, it's emergent behavior from the
+      model interpreting dense punctuation. Tested with am_onyx voice. Em-dashes
+      (— — —) from original scripts produce NO pauses. Periods with spaces (. .
+      .) untested next. This could be the key to making Kokoro narration feel
+      more human without switching engines.
+  - date: '2026-04-06'
+    stardate: '2026.96'
+    type: note
+    impact: medium
+    title: >-
+      Consolidated sonic-forge: merged ACE-Step sing engine, talking heads,
+      image heads, LLM helpers, bakeoff songs, and full CLI from tsomerville2
+      into starshipagentic (the golden PyPI version).
+      starshipagentic/sonic-forge is now the single canonical source.
   - date: '2026-03-13'
     stardate: '2026.72'
     type: note
@@ -147,6 +256,46 @@ entries:
     type: breakthrough
     impact: high
     title: Project born from Switch.Angel
+---
+
+## 2026-04-14 - MAJOR DISCOVERY: Kokoro pause/emotion control via punctuation stacking — complete findings. PERIODS: kick in at 1-2 count (0.3s), scale to 32 (2.3s peak), collapse at 64. "mmmm" thinking vocalization appears at 16+. EXCLAMATION MARKS: kick in at 4 count, scale past periods — 128 = 2.4s longest gap / 4.5s total quiet zone. Degrade gracefully at 256 (3.6s still). COMMAS: clean pauses, similar to periods. SEMICOLONS: produce digital artifacts, avoid. DASHES: produce growly sounds, avoid. OPTIMAL STRATEGY: Use periods x4-8 for breath pauses, periods x16-32 for thinking pauses, exclamation marks x64-128 for long contemplation. Chain periods then exclamation marks for maximum range. Filler words (hee hee, heh, tsk, yikes, sheesh, phew, oh, ahhh) work naturally. Repeated consonants (mmmmm, hhhh, nnnn) get spelled out letter-by-letter — avoid. This is undocumented emergent behavior in Kokoro-82M that enables expressive narration without switching engines. [MEDIUM IMPACT]
+
+**Type:** human
+
+
+
+---
+
+## 2026-04-14 - DISCOVERY: Kokoro punctuation pause control — full results. PERIODS (.) = cleanest pause, scales well 4-32, produces "mmmm" thinking sound at 16+. COMMAS (,) = also clean, good pause scaling. SEMICOLONS (;) = produce computerized/digital artifacts at higher counts, avoid. DASHES (—) = produce growly/guttural sounds at scale, avoid. MIXED (.;,—) = also growly, avoid. RECOMMENDATION: Use packed periods only for pause control in Kokoro. Normal scripts need multiple periods to slow down delivery — Kokoro default pace is too fast for narration. Sweet spot: 4-8 periods for breath pauses, 16 for thinking pauses, 32 max before collapse. Next test: chaining period blocks with filler words or spaces to create arbitrarily long pauses. [MEDIUM IMPACT]
+
+**Type:** human
+
+
+
+---
+
+## 2026-04-14 - DISCOVERY UPDATE: Kokoro pause scaling with packed periods — confirmed with energy analysis. Pauses DO scale exponentially up to 32 periods then collapse at 64. Measured gaps: 1 period=0.3s, 2=0.3s, 4=0.5s, 8=0.7s, 16=1.6s (with emergent "mmmm" thinking vocalization), 32=2.3s (with multiple humming waves). At 64 periods the model collapses back to 0.3s — it gives up. Sweet spot is 8-32 packed periods for controllable pauses. The "mmmm" thinking sound appears at 16+ periods — Kokoro is hallucinating contemplation from dense punctuation. This is a reliable, repeatable pause control mechanism for Kokoro narration. [MEDIUM IMPACT]
+
+**Type:** human
+
+
+
+---
+
+## 2026-04-14 - DISCOVERY: Kokoro pause/emotion hack — consecutive periods (....) cause Kokoro to produce a low 'mmmm' thinking sound, like a person contemplating. Exponential periods (1,2,4,8,16,32,64) create progressively longer pauses WITH this vocal thinking effect. Most emotional thing Kokoro has done — it's not a documented feature, it's emergent behavior from the model interpreting dense punctuation. Tested with am_onyx voice. Em-dashes (— — —) from original scripts produce NO pauses. Periods with spaces (. . .) untested next. This could be the key to making Kokoro narration feel more human without switching engines. [MEDIUM IMPACT]
+
+**Type:** human
+
+
+
+---
+
+## 2026-04-06 - Consolidated sonic-forge: merged ACE-Step sing engine, talking heads, image heads, LLM helpers, bakeoff songs, and full CLI from tsomerville2 into starshipagentic (the golden PyPI version). starshipagentic/sonic-forge is now the single canonical source. [MEDIUM IMPACT]
+
+**Type:** note
+
+
+
 ---
 
 ## 2026-03-13 - ACE-Step startup: full command reference [MEDIUM IMPACT]
