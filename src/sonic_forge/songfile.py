@@ -140,10 +140,10 @@ def generate_speech(text, wav_path, voice="Samantha", rate=None,
     fx: Robot effect to apply: helmet, intercom, droid, ringmod, bitcrush.
     rate: words per minute (macOS say only).
     """
-    from sonic_forge.tts import generate_to_wav, _apply_fx, _detect_engine
+    from sonic_forge.tts import generate_to_wav, _apply_fx, resolve_voice
 
     if not engine:
-        engine = _detect_engine(voice)
+        engine, voice = resolve_voice(voice=voice)
 
     generate_to_wav(text, wav_path, engine=engine, voice=voice, rate=rate)
 
@@ -205,12 +205,14 @@ def _normalize_wav(wav_path):
 
 
 def mix_voiceover(music_path, voiceovers, output_path, voice="Samantha",
-                  speech_rate=None, engine=None, fx=None, voice_stem=None):
+                  speech_rate=None, engine=None, fx=None, voice_stem=None,
+                  voice_gain=1.0):
     """Mix speech clips into music at specific timestamps.
 
     engine: TTS engine ("say", "kokoro"). Auto-detected from voice if omitted.
     fx: Robot effect to apply to all voiceovers.
     voice_stem: If set, save voice-only WAV to this path (for lip sync analysis).
+    voice_gain: Multiplier on speech level relative to the default mix (1.0).
     """
     tmp_dir = os.path.dirname(output_path) or "."
 
@@ -235,7 +237,7 @@ def mix_voiceover(music_path, voiceovers, output_path, voice="Samantha",
         for j, sample in enumerate(speech_data):
             idx = start_sample + j
             if idx < len(music_data):
-                mixed = music_data[idx] + int(sample * 0.8)
+                mixed = music_data[idx] + int(sample * 0.8 * voice_gain)
                 music_data[idx] = max(-32768, min(32767, mixed))
                 if voice_stem:
                     voice_data[idx] = sample
@@ -260,12 +262,14 @@ def render_yaml_song(yaml_path, output_path=None, play=False,
                      voice_override=None, lead_override=None,
                      target_duration=None, speech_rate=None,
                      template_name=None, engine=None, fx=None,
-                     voice_stem=None):
+                     voice_stem=None, music_vol=None, voice_vol=None):
     """Full pipeline: YAML -> music WAV -> mix voiceovers -> final WAV.
 
     engine: TTS engine for voiceovers ("say", "kokoro"). Auto-detected from voice.
     fx: Robot effect for voiceovers (helmet, intercom, droid, etc.).
     voice_stem: If set, save voice-only WAV to this path (for lip sync).
+    music_vol: Override music level (0.0-2.0). Falls back to the song/template value.
+    voice_vol: Scale voiceover level relative to the default mix (0.0-2.0).
     """
 
     if template_name:
@@ -348,15 +352,15 @@ def render_yaml_song(yaml_path, output_path=None, play=False,
     # Render music
     render_song(song["sections"], output_path, bpm=bpm)
 
-    # Scale music volume if template specifies it
-    music_volume = song.get("music_volume", 1.0)
-    if music_volume < 1.0:
+    # Scale music volume — CLI flag overrides the song/template value
+    music_volume = music_vol if music_vol is not None else song.get("music_volume", 1.0)
+    if music_volume != 1.0:
         with wave.open(output_path, "r") as wf:
             n_frames = wf.getnframes()
             rate = wf.getframerate()
             data = array.array("h", wf.readframes(n_frames))
         for j in range(len(data)):
-            data[j] = int(data[j] * music_volume)
+            data[j] = max(-32768, min(32767, int(data[j] * music_volume)))
         with wave.open(output_path, "w") as wf:
             wf.setnchannels(1)
             wf.setsampwidth(2)
@@ -372,7 +376,8 @@ def render_yaml_song(yaml_path, output_path=None, play=False,
         print(f"  Mixing {n_voices} voiceovers (voice: {song['voice']}{engine_info}{fx_info}{rate_info})...")
         mix_voiceover(output_path, song["voiceovers"], output_path,
                       voice=song["voice"], speech_rate=speech_rate,
-                      engine=engine, fx=fx, voice_stem=voice_stem)
+                      engine=engine, fx=fx, voice_stem=voice_stem,
+                      voice_gain=voice_vol if voice_vol is not None else 1.0)
 
     mins = int(dur) // 60
     secs = int(dur) % 60

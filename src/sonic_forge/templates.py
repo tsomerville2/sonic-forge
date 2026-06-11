@@ -143,36 +143,46 @@ def _lofi_instrumental(n=10):
 # ===================================================================
 
 def _cinematic_narrated(texts):
-    """Narrated cinematic: deep pads, slow tension. Voice carries the drama."""
+    """Narrated cinematic: stacked deep pad chords, slow tension. Voice carries the drama."""
     n = len(texts)
     sections = []
     for i, text in enumerate(texts):
         p = i / max(1, n - 1)
         if p < 0.2:
             sections.append({"say": text, "cycles": 2, "layers": [
-                {"synth": "pad", "notes": "d2 a2 d3"},
+                {"synth": "pad", "notes": "d2"},
+                {"synth": "pad", "notes": "a2"},
+                {"synth": "pad", "notes": "d3"},
             ]})
         elif p < 0.45:
             sections.append({"say": text, "cycles": 2, "layers": [
-                {"synth": "pad", "notes": "d2 a2 d3"},
+                {"synth": "pad", "notes": "d2"},
+                {"synth": "pad", "notes": "a2"},
+                {"synth": "pad", "notes": "d3"},
                 {"synth": "bass", "notes": "d1", "fast": 2},
             ]})
         elif p < 0.7:
             sections.append({"say": text, "cycles": 3, "layers": [
-                {"synth": "pad", "notes": "bb1 d2 f2"},
+                {"synth": "pad", "notes": "bb1"},
+                {"synth": "pad", "notes": "f2"},
+                {"synth": "pad", "notes": "d3"},
                 {"synth": "bass", "notes": "bb0", "fast": 4},
                 {"mini": "bd*4"},
             ]})
         elif p < 0.85:
             sections.append({"say": text, "cycles": 2, "layers": [
-                {"synth": "pad", "notes": "d2 f2 a2"},
+                {"synth": "pad", "notes": "d2"},
+                {"synth": "pad", "notes": "a2"},
+                {"synth": "pad", "notes": "f3"},
                 {"synth": "bass", "notes": "d1", "fast": 4},
                 {"mini": "bd*4"},
                 {"mini": "~ ~ ~ sn"},
             ]})
         else:
             sections.append({"say": text, "cycles": 2, "layers": [
-                {"synth": "pad", "notes": "d2 a2 d3"},
+                {"synth": "pad", "notes": "d2"},
+                {"synth": "pad", "notes": "a2"},
+                {"synth": "pad", "notes": "d3"},
             ]})
     return sections
 
@@ -210,38 +220,50 @@ def _cinematic_instrumental(n=10):
 # AMBIENT
 # ===================================================================
 
+# NOTE: a single layer's `notes` play SEQUENTIALLY (arpeggio), never as a
+# chord. True sustained chords come from STACKING one-note pad layers —
+# each layer drones its note, the stack is the chord. That's the difference
+# between a thin wandering line and a choir of pads.
+
+# I — vi — IV — V — I progression, voiced as (low root, fifth, third-up-top).
+_AMBIENT_PROGRESSION = [
+    ("c2", "g2", "e3"),    # I
+    ("a1", "e2", "c3"),    # vi
+    ("f1", "c2", "a2"),    # IV
+    ("g1", "d2", "b2"),    # V
+    ("c2", "g2", "e3"),    # I
+]
+
+
 def _ambient_narrated(texts):
-    """Narrated ambient: pure pads drifting. Voice floats in vast space."""
-    chords = ["c3 e3 g3", "a2 c3 e3", "f2 a2 c3", "g2 b2 d3",
-              "e2 g2 b2", "d2 f2 a2", "c3 e3 g3"]
+    """Narrated ambient: stacked pad chords drifting. Voice floats in vast space."""
     sections = []
     for i, text in enumerate(texts):
-        chord = chords[i % len(chords)]
+        low, fifth, third = _AMBIENT_PROGRESSION[i % len(_AMBIENT_PROGRESSION)]
         sections.append({"say": text, "cycles": 1, "layers": [
-            {"synth": "pad", "notes": chord},
+            {"synth": "pad", "notes": low},
+            {"synth": "pad", "notes": fifth},
+            {"synth": "pad", "notes": third},
         ]})
     return sections
 
 
 def _ambient_instrumental(n=10):
-    """Full ambient: layered pads, slow pluck, vast space."""
-    chords = ["c3 e3 g3", "a2 c3 e3", "f2 a2 c3", "g2 b2 d3",
-              "e2 g2 b2", "d2 f2 a2", "c3 e3 g3"]
+    """Full ambient: stacked-chord pad choir, sparse pluck shimmer, vast space."""
+    melodies = [None, "e5 ~ c5 ~", "a4 g4 e4 g4", "d5 b4 g4 b4", "e5 d5 c5 ~"]
     sections = []
-    for i in range(min(n, len(chords))):
-        chord = chords[i]
-        if i < 2 or i >= len(chords) - 1:
-            sections.append({"cycles": 4, "layers": [
-                {"synth": "pad", "notes": chord}]})
-        elif i < 4:
-            sections.append({"cycles": 4, "layers": [
-                {"synth": "pad", "notes": chord},
-                {"synth": "pluck", "notes": "g4 e4 c4 e4", "fast": 2}]})
-        else:
-            sections.append({"cycles": 4, "layers": [
-                {"synth": "pad", "notes": chord},
-                {"synth": "pad", "notes": "c2 g2"},
-                {"synth": "pluck", "notes": "c5 g4 e4 g4", "fast": 2}]})
+    for i, (low, fifth, third) in enumerate(_AMBIENT_PROGRESSION):
+        layers = [
+            {"synth": "pad", "notes": low},
+            {"synth": "pad", "notes": fifth},
+            {"synth": "pad", "notes": third},
+        ]
+        if i == len(_AMBIENT_PROGRESSION) - 1:
+            # Final resolve: add a high octave for the full choir
+            layers.append({"synth": "pad", "notes": "c4"})
+        if melodies[i % len(melodies)]:
+            layers.append({"synth": "pluck", "notes": melodies[i % len(melodies)]})
+        sections.append({"cycles": 3 if i < 4 else 4, "layers": layers})
     return sections
 
 

@@ -222,3 +222,61 @@ def interactive_menu() -> None:
 
     print(f"\n  Unknown selection: {choice}")
     print(f"  Try a number (1-{len(SONGS)}) or a track name.\n")
+
+
+def show_dsl() -> None:
+    """Print the YAML song format reference — synths, notes, mini-notation."""
+    from sonic_forge.tidal import SYNTHS, _PITCHED_SYNTHS
+
+    drums = sorted(k for k in SYNTHS if k not in _PITCHED_SYNTHS)
+    pitched = sorted(_PITCHED_SYNTHS)
+
+    print("""
+  SONG FORMAT REFERENCE
+  =====================
+
+  A song is a YAML file:
+
+    title: My Track
+    bpm: 120                       # 1 cycle = 4 beats = 240/bpm seconds
+    voice: af_heart                # optional, for say: narration
+    sections:
+      - say: "optional narration"  # spoken over this section
+        cycles: 4                  # how many cycles this section lasts
+        layers:                    # all layers play SIMULTANEOUSLY
+          - synth: pad             # pitched synth + note sequence
+            notes: c3 e3 g3        # space-separated, cycles through them
+            fast: 2                # speed multiplier (notes per cycle x2)
+          - mini: "bd*4"           # tidal mini-notation pattern
+          - mini: "~ hh ~ hh"      # rests with ~
+
+  PITCHED SYNTHS (use with notes:)""")
+    print(f"    {' '.join(pitched)}")
+    print("""
+  DRUM / TEXTURE SOUNDS (use inside mini:)""")
+    print(f"    {' '.join(drums)}")
+    print("""
+  NOTES
+    Lowercase note + octave: c3, e4, bb2, f#3. Sharps #, flats b.
+
+  MINI-NOTATION (per cycle)
+    bd sn hh          three sounds spread over the cycle
+    bd*4              repeat 4x (four-on-the-floor kick)
+    [bd sn] hh        nesting — bd+sn squeeze into first half
+    bd(3,8)           euclidean rhythm — 3 hits spread over 8 slots
+    bd,sn             stack — both at once
+    ~                 silence / rest
+    pluck:c4          pitched synth playable inside mini too
+
+  ARRANGEMENT TIPS
+    - Layers stack without limit — a drop can run 6+ layers.
+    - Sections are your arrangement: drop layers for a breakdown,
+      re-stack them for the drop.
+    - Stack the SAME pad at different octaves (c2 / g2 / e3) for a
+      rich choir instead of one buzzy chord string.
+    - Euclidean hats like hh(5,16) or hh(7,16) instantly groove.
+
+  RENDER
+    sonic-forge render song.yaml -o out.wav
+    sonic-forge render song.yaml --voice af_heart --music-vol 0.8 --play
+""")
