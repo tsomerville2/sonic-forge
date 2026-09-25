@@ -990,6 +990,7 @@ def narrate_cmd(
     fps: int = typer.Option(30, "--fps", help="Frame rate assumed for manifest total_frames."),
     no_manifest: bool = typer.Option(False, "--no-manifest", help="Skip the *.timing.json output."),
     sample_rate: int = typer.Option(24000, "--sample-rate", help="Output sample rate in Hz."),
+    pause_mode: str = typer.Option("legacy", "--pause-mode", help="legacy: blank lines add a medium pause and markers compete with it (shorter than ~1.3s is swallowed). explicit: a marker replaces the default for its gap."),
 ) -> None:
     """Produce a long-form narration WAV + timing manifest.
 
@@ -1033,6 +1034,7 @@ def narrate_cmd(
             sample_rate=sample_rate,
             write_manifest=not no_manifest,
             verbose=True,
+            pause_mode=pause_mode,
         )
     except RuntimeError as e:
         print(f"\n  {e}\n")

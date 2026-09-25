@@ -92,6 +92,38 @@ class SplitScriptTests(unittest.TestCase):
         self.assertGreaterEqual(len(pause_segs), 1)
 
 
+class ExplicitPauseModeTests(unittest.TestCase):
+    def _pauses(self, text, mode, seed=608):
+        return [v for k, v in split_script(text, random.Random(seed), mode) if k == "pause"]
+
+    def test_short_marker_is_swallowed_in_legacy(self):
+        # Legacy: the marker competes with two blank-line medium picks via max().
+        legacy = self._pauses("a\n\n[pause: short]\n\nb", "legacy")
+        self.assertEqual(len(legacy), 3)
+        self.assertGreaterEqual(max(legacy), 0.55)
+
+    def test_short_marker_is_honoured_in_explicit(self):
+        pauses = self._pauses("a\n\n[pause: short]\n\nb", "explicit")
+        self.assertEqual(len(pauses), 1)
+        self.assertIn(pauses[0], PAUSE_POOLS["short"])
+
+    def test_numeric_marker_is_honoured_in_explicit(self):
+        for seed in range(50):
+            (p,) = self._pauses("a\n\n[pause: 0.3]\n\nb", "explicit", seed)
+            self.assertGreaterEqual(p, 0.255)
+            self.assertLessEqual(p, 0.345)
+
+    def test_bare_blank_line_gap_is_default_medium_once(self):
+        pauses = self._pauses("a\n\n\n\nb", "explicit")
+        self.assertEqual(len(pauses), 1)
+        self.assertIn(pauses[0], PAUSE_POOLS["medium"])
+
+    def test_same_text_segments_in_both_modes(self):
+        legacy = [v for k, v in split_script(SAMPLE_SCRIPT, random.Random(1), "legacy") if k == "text"]
+        explicit = [v for k, v in split_script(SAMPLE_SCRIPT, random.Random(1), "explicit") if k == "text"]
+        self.assertEqual(legacy, explicit)
+
+
 @unittest.skipUnless(_tools_available(), "requires macOS say + ffmpeg + ffprobe")
 class NarrateEndToEndTests(unittest.TestCase):
     def test_generates_wav_and_manifest(self):

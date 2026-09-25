@@ -82,7 +82,8 @@ def phonics_apply(text: str, phonics_path: Optional[Path]) -> str:
     return text
 
 
-def split_script(text: str, rng: random.Random) -> Iterator[tuple[str, object]]:
+def split_script(text: str, rng: random.Random,
+                 pause_mode: str = "legacy") -> Iterator[tuple[str, object]]:
     """Parse input text into ("text", paragraph) and ("pause", seconds) tuples.
 
     - `[pause: label]` on its own line → explicit pause.
@@ -98,6 +99,10 @@ def split_script(text: str, rng: random.Random) -> Iterator[tuple[str, object]]:
         if chunk:
             yield ("text", chunk)
 
+    if pause_mode == "explicit":
+        yield from _split_explicit(lines, rng)
+        return
+
     for line in lines:
         m = re.match(r'^\s*\[pause:\s*([^\]]+)\s*\]\s*$', line)
         if m:
@@ -107,6 +112,46 @@ def split_script(text: str, rng: random.Random) -> Iterator[tuple[str, object]]:
             yield from flush()
             yield ("pause", pick_pause(DEFAULT_PAUSE_LABEL, rng))
         else:
+            buffer.append(line)
+    yield from flush()
+
+
+def _split_explicit(lines: list[str], rng: random.Random) -> Iterator[tuple[str, object]]:
+    """Explicit pause mode: a [pause: …] marker REPLACES the blank-line default.
+
+    Each gap between two paragraphs (any run of blank lines and markers) emits
+    exactly one pause. If the gap holds markers, the longest marker wins and no
+    default is drawn; a gap of bare blank lines gets the default medium pause.
+    So `[pause: short]` really is short, and `[pause: 0.3]` really is ~0.3s.
+    """
+    buffer: list[str] = []
+    markers: list[str] = []
+    in_gap = False
+
+    def flush():
+        chunk = "\n".join(buffer).strip()
+        buffer.clear()
+        if chunk:
+            yield ("text", chunk)
+
+    def close_gap():
+        if markers:
+            yield ("pause", max(pick_pause(m, rng) for m in markers))
+        else:
+            yield ("pause", pick_pause(DEFAULT_PAUSE_LABEL, rng))
+        markers.clear()
+
+    for line in lines:
+        m = re.match(r'^\s*\[pause:\s*([^\]]+)\s*\]\s*$', line)
+        if m or line.strip() == "":
+            yield from flush()
+            in_gap = True
+            if m:
+                markers.append(m.group(1))
+        else:
+            if in_gap:
+                yield from close_gap()
+                in_gap = False
             buffer.append(line)
     yield from flush()
 
@@ -193,7 +238,8 @@ def narrate(input_path, output_path,
             fps: int = DEFAULT_FPS,
             sample_rate: int = DEFAULT_SAMPLE_RATE,
             write_manifest: bool = True,
-            verbose: bool = True) -> Path:
+            verbose: bool = True,
+            pause_mode: str = "legacy") -> Path:
     """Produce a narration WAV + (optional) timing manifest JSON.
 
     Args:
@@ -209,10 +255,16 @@ def narrate(input_path, output_path,
         sample_rate: Output sample rate (Hz).
         write_manifest: Skip the timing JSON if False.
         verbose: Print per-segment progress.
+        pause_mode: "legacy" (every blank line draws a medium pause and adjacent
+            pauses collapse by max, so markers shorter than ~1.3s are swallowed;
+            byte-identical to earlier releases) or "explicit" (a marker replaces
+            the blank-line default for its gap).
 
     Returns:
         Path to the produced WAV.
     """
+    if pause_mode not in ("legacy", "explicit"):
+        raise ValueError(f"pause_mode must be 'legacy' or 'explicit', got {pause_mode!r}")
     rng = random.Random(seed)
     output_path = Path(output_path)
     manifest_path = output_path.with_suffix(".timing.json")
@@ -231,7 +283,7 @@ def narrate(input_path, output_path,
     try:
         # Collapse adjacent pauses (keep max) and trim leading/trailing pauses
         collapsed: list[tuple[str, object]] = []
-        for kind, val in split_script(phonicsed, rng):
+        for kind, val in split_script(phonicsed, rng, pause_mode):
             if kind == "pause" and collapsed and collapsed[-1][0] == "pause":
                 collapsed[-1] = ("pause", max(collapsed[-1][1], val))
             else:
@@ -291,6 +343,7 @@ def narrate(input_path, output_path,
                 "total_duration": round(total, 3),
                 "fps": fps,
                 "total_frames": int(total * fps),
+                "pause_mode": pause_mode,
                 "segments": manifest,
             }
             manifest_path.write_text(json.dumps(manifest_out, indent=2))
