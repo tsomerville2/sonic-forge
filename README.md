@@ -74,7 +74,7 @@ More options:
 
 ```bash
 sonic-forge voices                       # every engine
-sonic-forge voices --engine kokoro       # 27 English Kokoro voices
+sonic-forge voices --engine kokoro       # 54 Kokoro voices, 28 of them English
 sonic-forge voices --lang hindi          # who speaks Hindi
 sonic-forge speak --text "Hello there" --voice onyx
 sonic-forge speak --text "Welcome" --voice heart -o intro.wav --no-play

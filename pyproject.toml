@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sonic-forge"
-version = "0.10.0"
+version = "0.10.1"
 description = "Local speech, narration with frame-accurate timings for video, and music made from code: Kokoro, Edge and macOS voices, voice FX, bytebeat."
 readme = "README.md"
 requires-python = ">=3.10"

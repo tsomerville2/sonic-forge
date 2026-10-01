@@ -56,7 +56,7 @@ first: `{"CI/CD": "C I C D", "Kubernetes": "koo-ber-net-eez"}`.
 ## Voices and engines
 
 ```bash
-sonic-forge voices --engine kokoro      # 27 English Kokoro voices (local, high quality)
+sonic-forge voices --engine kokoro      # 54 Kokoro voices, 28 English (local, high quality)
 sonic-forge voices --lang hindi         # which engines and voices speak a language
 sonic-forge speak --text "Hello there" --voice onyx           # hear one now
 sonic-forge speak --text "Welcome" --voice heart -o intro.wav --no-play

@@ -36,7 +36,7 @@ def main(
     """Sonic Forge — local speech, narration with timings, and code-generated music.
 
     Voiceover for a video, with a timing manifest to cut visuals to:
-      sonic-forge narrate script.txt narration.wav --engine kokoro --voice am_fenrir --seed 608 --pause-mode explicit
+      sonic-forge narrate script.txt out.wav --pause-mode explicit
 
     Hear a voice, list voices, make a music bed:
       sonic-forge speak --text "Hello there" --voice onyx
@@ -44,8 +44,8 @@ def main(
       sonic-forge beat ambient -d 60 -o bed.wav --no-play
 
     Every command has examples: sonic-forge COMMAND --help.
-    Agents: sonic-forge --skill prints the skill card (already installed for Claude Code, Codex and
-    ~/.agents; sonic-forge --skill install shows where).
+    Agents: sonic-forge --skill prints the skill card. It is already installed
+    for Claude Code, Codex and ~/.agents; sonic-forge --skill install shows where.
 
     Run with no arguments for the interactive launcher.
     """
@@ -314,7 +314,7 @@ def speak_cmd(
 
     See all voices:
       sonic-forge voices                         # everything
-      sonic-forge voices --engine kokoro         # 27 English voices
+      sonic-forge voices --engine kokoro         # 54 voices, 28 of them English
       sonic-forge voices --engine edge           # 20 languages (cloud, free)
       sonic-forge voices --lang telugu           # Telugu-capable voices only
     """
@@ -471,7 +471,7 @@ def voices_cmd(
 
     By engine:
       sonic-forge voices --engine say       # 184 macOS voices (offline, basic)
-      sonic-forge voices --engine kokoro    # 27 English voices (offline, high quality)
+      sonic-forge voices --engine kokoro    # 54 voices, 28 English (offline, high quality)
       sonic-forge voices --engine edge      # 20 languages (cloud, free, great quality)
 
     By language:

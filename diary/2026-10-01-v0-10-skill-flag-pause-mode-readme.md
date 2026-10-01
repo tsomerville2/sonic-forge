@@ -45,11 +45,12 @@ sonic-forge --skill list --json                      # digest == sha256(sonic-fo
 sonic-forge --skill export | tar -tvf -              # sonic-forge/ + sonic-forge/SKILL.md, mtime 0
 python3.13 -m pytest tests -q                        # 28 passed (narrate e2e with say + skill/help/drift)
 
-# release (same recipe as navcom)
-rm -rf dist && uv build -q
+# release: standard PyPA tools via pipx (no uv)
+rm -rf dist && pipx run build                          # sdist + wheel into dist/
+pipx run twine check dist/*
 TWINE_USERNAME=__token__ TWINE_PASSWORD=$(python3 -c "import json,os;print(json.load(open(os.path.expanduser('~/.pypi-keys.json')))['pypi'])") \
-  uvx twine upload --non-interactive --disable-progress-bar --config-file /dev/null dist/sonic_forge-0.10.0*
-/opt/homebrew/opt/python@3.13/bin/python3.13 -m pip install -q --break-system-packages -e .   # refresh local editable metadata
+  pipx run twine upload --non-interactive dist/*
+pipx upgrade sonic-forge                               # this Mac runs the real PyPI install, like everyone else
 ```
 
 ## D) Files changed
@@ -67,7 +68,8 @@ TWINE_USERNAME=__token__ TWINE_PASSWORD=$(python3 -c "import json,os;print(json.
 ## E) Appendix
 - PyPI before this release: 0.9.0. 0.9.1 was never published; 0.10.0 includes it and 702dcd0 (CLI/engine API drift fix, 2026-06-10).
 - GitHub: `tsomerville2/sonic-forge` (public), pushed with the active gh account tsomerville2.
-- Local install: Homebrew python3.13 editable (`/opt/homebrew/bin/sonic-forge` → `~/dev/sonic-forge`). A stale pipx venv (0.5.2, symlink missing) also exists.
-- video-maker vendors `worker/vendor/sonic_forge-0.9.1-py3-none-any.whl`; the narration code is identical in 0.10.0.
+- Local install, as of 0.10.1: `pipx install "sonic-forge[kokoro]"` from PyPI, at `~/.local/bin/sonic-forge` (Python 3.13). Removed in the cleanup: the editable Homebrew install, the broken 0.5.2 pipx venv, and the repo's Aug-4 `uv.lock` and `.venv` (uv 0.8.3, never tracked).
+- 0.10.1: voice counts corrected (54 Kokoro voices, 28 English; the old help said 27), and the top help fits 80 columns.
+- video-maker now installs `sonic-forge[kokoro]==0.10.1` from PyPI in its Dockerfile. The vendored 0.9.1 wheel is gone; it was a stopgap from before 0.9.1 was published.
 
 **Tags:** sonic-forge, release, pypi, skillflag, SKILL.md, agent-skills, --skill, pause-mode, typer-rich-markup, help-text, kokoro-default-linux. The CLI now explains itself to people and agents, and its pause markers mean what they say.

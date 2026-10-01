@@ -116,10 +116,10 @@ class HelpTests(CliCase):
 
     def test_top_help_points_agents_at_skill(self):
         out = self.sf("--help").stdout
-        self.assertIn("sonic-forge --skill prints the skill card", out)
+        self.assertIn("sonic-forge --skill prints the skill card.", out)
         self.assertIn("--skill", out)
         self.assertIn("--version", out)
-        self.assertIn("sonic-forge narrate script.txt narration.wav", out)
+        self.assertIn("sonic-forge narrate script.txt out.wav", out)
 
     def test_narrate_help_shows_pause_markers_literally(self):
         # Rich treats [pause: short] as a markup tag and deletes it unless escaped.
