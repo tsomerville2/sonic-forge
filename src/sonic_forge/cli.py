@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -11,17 +12,45 @@ import typer
 
 app = typer.Typer(
     name="sonic-forge",
-    help="Sonic Forge — bytebeat music DSL + multi-engine TTS voice system.",
     invoke_without_command=True,
 )
 
 
+def _version_callback(value: bool) -> None:
+    if value:
+        from sonic_forge import __version__
+        print(f"sonic-forge {__version__}")
+        raise typer.Exit()
+
+
 @app.callback()
-def main(ctx: typer.Context) -> None:
-    """Sonic Forge — bytebeat music DSL + multi-engine TTS voice system.
+def main(
+    ctx: typer.Context,
+    version: bool = typer.Option(False, "--version", "-V", callback=_version_callback, is_eager=True,
+                                 help="Print the version and exit."),
+    skill: Optional[str] = typer.Option(None, "--skill", "--skills", metavar="[ACTION]",
+                                        help="The agent skill card (SKILL.md). Bare --skill prints it; "
+                                             "--skill install (re)installs it for every coding agent here; "
+                                             "--skill list | export are Skillflag-compatible."),
+) -> None:
+    """Sonic Forge — local speech, narration with timings, and code-generated music.
+
+    Voiceover for a video, with a timing manifest to cut visuals to:
+      sonic-forge narrate script.txt narration.wav --engine kokoro --voice am_fenrir --seed 608 --pause-mode explicit
+
+    Hear a voice, list voices, make a music bed:
+      sonic-forge speak --text "Hello there" --voice onyx
+      sonic-forge voices --engine kokoro
+      sonic-forge beat ambient -d 60 -o bed.wav --no-play
+
+    Every command has examples: sonic-forge COMMAND --help.
+    Agents: sonic-forge --skill prints the skill card (already installed for Claude Code, Codex and
+    ~/.agents; sonic-forge --skill install shows where).
 
     Run with no arguments for the interactive launcher.
     """
+    if skill is not None:  # normally handled by run(); reached only via `python -m` edge cases
+        raise typer.Exit(_skill([skill]))
     if ctx.invoked_subcommand is None:
         from sonic_forge.launcher import interactive_menu
         interactive_menu()
@@ -980,7 +1009,7 @@ def beat_cmd(
 
 @app.command("narrate")
 def narrate_cmd(
-    input_path: str = typer.Argument(..., help="Text file with paragraphs separated by blank lines. Supports [pause: label] and [pause: 1.2] markup. Use '-' for stdin."),
+    input_path: str = typer.Argument(..., help="Text file with paragraphs separated by blank lines. Supports \\[pause: label] and \\[pause: 1.2] markup. Use '-' for stdin."),
     output: str = typer.Argument(..., help="Target WAV path. Manifest emitted alongside at OUTPUT.timing.json (unless --no-manifest)."),
     voice: Optional[str] = typer.Option(None, "--voice", "-v", help="Voice short name or full ID. Defaults: af_heart for kokoro, natural choice per lang otherwise."),
     lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Auto-pick engine + voice by language (telugu, hindi, english, french, ...)."),
@@ -990,7 +1019,7 @@ def narrate_cmd(
     fps: int = typer.Option(30, "--fps", help="Frame rate assumed for manifest total_frames."),
     no_manifest: bool = typer.Option(False, "--no-manifest", help="Skip the *.timing.json output."),
     sample_rate: int = typer.Option(24000, "--sample-rate", help="Output sample rate in Hz."),
-    pause_mode: str = typer.Option("legacy", "--pause-mode", help="legacy: blank lines add a medium pause and markers compete with it (shorter than ~1.3s is swallowed). explicit: a marker replaces the default for its gap."),
+    pause_mode: str = typer.Option("legacy", "--pause-mode", help="explicit (recommended): a \\[pause: …] marker sets its gap, so short really is short. legacy (default, byte-identical to ≤0.9.0): every blank line also draws a medium pause (0.55–1.10s) and the longer one wins, so shorter markers are swallowed."),
 ) -> None:
     """Produce a long-form narration WAV + timing manifest.
 
@@ -998,11 +1027,15 @@ def narrate_cmd(
     Pause pools (tiny/short/medium/long/xlong) give natural variation, and
     the emitted `*.timing.json` lets Remotion/DaVinci align visuals to audio.
 
-    Markup inside the input file:
-      Blank lines → default medium pause.
-      [pause: short]   → pick from the short pool.
-      [pause: xlong]   → pick from the xlong pool.
-      [pause: 1.2]     → 1.2s ± 15% jitter.
+    Markup inside the input file (a line of its own, between paragraphs):
+      Blank lines      → default medium pause (0.55–1.10s).
+      \\[pause: tiny]    → 0.15–0.40s     \\[pause: long]  → 0.95–1.60s
+      \\[pause: short]   → 0.30–0.68s     \\[pause: xlong] → 1.50–2.35s
+      \\[pause: 1.2]     → 1.2s ± 15% jitter.
+    Use --pause-mode explicit so a marker sets its gap (see below).
+
+    The manifest: {total_duration, fps, total_frames, pause_mode, segments: [{kind: text|pause,
+    index, start, end, duration, text}]}, times in seconds. Off macOS, no engine given → Kokoro.
 
     English, default Kokoro voice:
       sonic-forge narrate script.txt narration.wav --voice am_fenrir
@@ -1010,8 +1043,8 @@ def narrate_cmd(
     With phonics dictionary (project-specific word fixups):
       sonic-forge narrate script.txt narration.wav --phonics ./phonics.json
 
-    Reproducible pause timing:
-      sonic-forge narrate script.txt narration.wav --seed 608
+    Reproducible pause timing (same input + seed → same WAV), markers honoured exactly:
+      sonic-forge narrate script.txt narration.wav --seed 608 --pause-mode explicit
 
     Telugu via edge-tts (Kokoro can't do Telugu):
       sonic-forge narrate script.txt narration.wav --lang telugu
@@ -1036,7 +1069,7 @@ def narrate_cmd(
             verbose=True,
             pause_mode=pause_mode,
         )
-    except RuntimeError as e:
+    except (RuntimeError, ValueError) as e:
         print(f"\n  {e}\n")
         raise typer.Exit(1)
 
@@ -1091,5 +1124,20 @@ def kokoro_prep_cmd(
         do_speak(result, voice=voice, engine="kokoro", output_path=wav_path, play=not bool(audio_output))
 
 
-if __name__ == "__main__":
+def _skill(argv: list[str]) -> int:
+    from sonic_forge.skill import cmd_skill
+    return cmd_skill(argv)
+
+
+def run() -> None:
+    """Console entry point: `--skill [action]` first, then the silent skill refresh, then the app."""
+    argv = sys.argv[1:]
+    if argv and argv[0] in ("--skill", "--skills"):
+        sys.exit(_skill(argv[1:]))
+    from sonic_forge.skill import auto_install_skills
+    auto_install_skills()
     app()
+
+
+if __name__ == "__main__":
+    run()

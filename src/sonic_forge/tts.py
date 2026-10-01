@@ -13,6 +13,7 @@ Usage:
 """
 
 import os
+import shutil
 import subprocess
 import tempfile
 import wave
@@ -266,7 +267,9 @@ def resolve_voice(voice=None, engine=None, lang=None):
     if engine == "edge":
         return "edge", voice or "en-US-GuyNeural"
 
-    # 6. Default: macOS say
+    # 6. Default: macOS say where it exists; Kokoro everywhere else (Linux, Windows, containers)
+    if engine is None and shutil.which("say") is None:
+        return "kokoro", voice or "af_heart"
     return engine or "say", voice or "Samantha"
 
 

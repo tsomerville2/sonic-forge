@@ -4,12 +4,24 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sonic-forge"
-version = "0.9.1"
-description = "Bytebeat music DSL + multi-engine TTS voice system — beamed from starforge"
+version = "0.10.0"
+description = "Local speech, narration with frame-accurate timings for video, and music made from code: Kokoro, Edge and macOS voices, voice FX, bytebeat."
+readme = "README.md"
 requires-python = ">=3.10"
+keywords = ["tts", "text-to-speech", "narration", "voiceover", "kokoro", "edge-tts", "remotion", "timing", "bytebeat", "music", "cli", "agent-skills"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Multimedia :: Sound/Audio :: Sound Synthesis",
+]
 dependencies = [
     "pyyaml",
     "typer",
+    "rich",  # typer's formatted --help; without it every example is rewrapped into one paragraph
 ]
 
 [project.optional-dependencies]
@@ -18,8 +30,12 @@ tts = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy", "f5-tts-mlx"]
 robot = ["soundfile", "numpy"]
 all = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy", "f5-tts-mlx"]
 
+[project.urls]
+Homepage = "https://github.com/tsomerville2/sonic-forge"
+Source = "https://github.com/tsomerville2/sonic-forge"
+
 [project.scripts]
-sonic-forge = "sonic_forge.cli:app"
+sonic-forge = "sonic_forge.cli:run"
 
 [tool.hatch.build]
 include = ["src/sonic_forge/**"]
