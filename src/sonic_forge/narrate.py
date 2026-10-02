@@ -351,6 +351,11 @@ def narrate(input_path, output_path,
                     print(f"  [{cumulative-val:6.2f}–{cumulative:6.2f}s] pause {val:.2f}s")
 
         concat_wavs(files, output_path, sample_rate=sample_rate)
+        if resolved_engine == "chatterbox":
+            # Cloned speech comes out quiet (peaks near -15 dB); one linear gain to a -4.5 dB peak
+            # puts it level with Kokoro without touching timing or dynamics.
+            from sonic_forge.clone import peak_normalize
+            peak_normalize(output_path, target_db=-4.5, sample_rate=sample_rate)
         total = probe_duration(output_path)
 
         if write_manifest:

@@ -65,6 +65,22 @@ def prep_reference(src, dst, max_seconds: float = MAX_REFERENCE_SECONDS) -> floa
     return seconds
 
 
+def peak_normalize(path, target_db: float = -4.5, sample_rate: int = REFERENCE_RATE) -> float:
+    """Apply one linear gain so the loudest sample sits at `target_db` dBFS. Returns the gain in dB."""
+    path = Path(path)
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(path), "-af", "volumedetect", "-f", "null", "-"],
+                       capture_output=True, text=True, check=True)
+    m = re.search(r"max_volume:\s*(-?[\d.]+) dB", r.stderr)
+    if not m:
+        return 0.0
+    gain = target_db - float(m.group(1))
+    tmp = path.with_suffix(".norm.wav")
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(path), "-af", f"volume={gain:.2f}dB",
+                    "-ar", str(sample_rate), "-ac", "1", "-acodec", "pcm_s16le", str(tmp)], check=True)
+    tmp.replace(path)
+    return gain
+
+
 def _chunks(text: str) -> list[str]:
     """Split a long paragraph at sentence ends into calls of at most MAX_CHARS_PER_CALL."""
     text = " ".join(text.split())

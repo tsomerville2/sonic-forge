@@ -109,6 +109,9 @@ class NarrateWithClone(unittest.TestCase):
         texts = [s for s in timing["segments"] if s["kind"] == "text"]
         self.assertEqual([round(s["duration"], 1) for s in texts], [1.0, 2.0, 3.0])
         self.assertAlmostEqual(probe_duration(d / "out.wav"), timing["total_duration"], delta=0.05)
+        # Cloned narration is levelled to a -4.5 dB peak (sine tones peak near 0 dB before it).
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(d / "out.wav"), "-af", "volumedetect", "-f", "null", "-"], capture_output=True, text=True)
+        self.assertIn("max_volume: -4.5 dB", r.stderr)
 
 
 @unittest.skipUnless(os.environ.get("SONIC_FORGE_SLOW") == "1", "set SONIC_FORGE_SLOW=1 to run the real model")
