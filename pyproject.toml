@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sonic-forge"
-version = "0.11.1"
-description = "Local speech, narration with frame-accurate timings for video, and music made from code: Kokoro, Edge and macOS voices, cloned voices (Chatterbox), voice FX, bytebeat."
+version = "0.12.0"
+description = "Local speech, narration with frame-accurate timings for video, and music made from code: Kokoro, Edge and macOS voices, cloned voices (Chatterbox, GPU on Apple silicon), speech to text (Parakeet), voice FX, bytebeat."
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = ["tts", "text-to-speech", "narration", "voiceover", "kokoro", "edge-tts", "voice-cloning", "chatterbox", "remotion", "timing", "bytebeat", "music", "cli", "agent-skills"]
+keywords = ["tts", "text-to-speech", "narration", "voiceover", "kokoro", "edge-tts", "voice-cloning", "chatterbox", "mlx", "speech-to-text", "parakeet", "transcription", "remotion", "timing", "bytebeat", "music", "cli", "agent-skills"]
 classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
@@ -29,7 +29,22 @@ kokoro = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy"]
 tts = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy", "f5-tts-mlx"]
 robot = ["soundfile", "numpy"]
 # Voice cloning (Chatterbox Turbo). On Linux install CPU torch first, see sonic_forge/clone.py.
-clone = ["chatterbox-tts==0.1.7", "torch==2.6.0", "torchaudio==2.6.0"]
+# setuptools<81: Chatterbox's Perth watermarker imports pkg_resources, which setuptools 81 removed;
+# without it a fresh install fails to load the model.
+clone = ["chatterbox-tts==0.1.7", "torch==2.6.0", "torchaudio==2.6.0", "setuptools<81"]
+# The same Chatterbox Turbo on the Apple silicon GPU (mlx-audio), several times faster than torch on
+# CPU. torch/torchaudio/resemble-perth are only for the Perth watermark every clip carries.
+clone-mlx = [
+    "mlx-audio==0.5.7; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "resemble-perth==1.0.1; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "torch==2.6.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "torchaudio==2.6.0; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "librosa; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "setuptools<81; sys_platform == 'darwin' and platform_machine == 'arm64'",  # perth imports pkg_resources
+    "numpy",
+]
+# Speech to text on the Apple silicon GPU: NVIDIA Parakeet TDT 0.6B (sonic-forge transcribe).
+stt-mlx = ["parakeet-mlx==0.5.3; sys_platform == 'darwin' and platform_machine == 'arm64'"]
 all = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy", "f5-tts-mlx"]
 
 [project.urls]

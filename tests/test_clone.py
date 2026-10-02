@@ -81,10 +81,62 @@ class Engine(unittest.TestCase):
 
     def test_default_jobs_stay_within_cores_and_work(self):
         with mock.patch("os.cpu_count", return_value=16):
-            self.assertEqual(clone.default_jobs(9), 4)
-            self.assertEqual(clone.default_jobs(2), 2)
+            self.assertEqual(clone.default_jobs(9, "torch"), 4)
+            self.assertEqual(clone.default_jobs(2, "torch"), 2)
         with mock.patch("os.cpu_count", return_value=2):
-            self.assertEqual(clone.default_jobs(9), 1)
+            self.assertEqual(clone.default_jobs(9, "torch"), 1)
+
+
+class Backend(unittest.TestCase):
+    """Which Chatterbox runs: mlx on Apple silicon with the clone-mlx extra, torch elsewhere."""
+
+    def test_env_forces_a_backend(self):
+        for value in ("mlx", "torch", "MLX "):
+            with mock.patch.dict(os.environ, {"SONIC_FORGE_CLONE_BACKEND": value}):
+                self.assertEqual(clone.backend(), value.strip().lower())
+
+    def test_unknown_forced_backend_is_an_error(self):
+        with mock.patch.dict(os.environ, {"SONIC_FORGE_CLONE_BACKEND": "cuda"}):
+            with self.assertRaisesRegex(ValueError, "mlx or torch"):
+                clone.backend()
+
+    def test_apple_silicon_with_mlx_audio_picks_mlx(self):
+        with mock.patch.dict(os.environ, {"SONIC_FORGE_CLONE_BACKEND": ""}), \
+                mock.patch.object(clone, "_apple_silicon", return_value=True), \
+                mock.patch("importlib.util.find_spec", side_effect=lambda name: object() if name == "mlx_audio" else None):
+            self.assertEqual(clone.backend(), "mlx")
+
+    def test_linux_or_no_mlx_audio_picks_torch(self):
+        with mock.patch.dict(os.environ, {"SONIC_FORGE_CLONE_BACKEND": ""}):
+            with mock.patch.object(clone, "_apple_silicon", return_value=False):
+                self.assertEqual(clone.backend(), "torch")
+            with mock.patch.object(clone, "_apple_silicon", return_value=True), \
+                    mock.patch("importlib.util.find_spec", return_value=None):
+                self.assertEqual(clone.backend(), "torch")
+
+    def test_the_gpu_gets_one_process(self):
+        with mock.patch("os.cpu_count", return_value=16):
+            self.assertEqual(clone.default_jobs(9, "mlx"), 1)
+            self.assertEqual(clone.default_jobs(9, "torch"), 4)
+
+    def test_missing_extra_names_the_right_install(self):
+        with mock.patch("importlib.util.find_spec", return_value=None):
+            with self.assertRaisesRegex(RuntimeError, "clone-mlx"):
+                clone._require("mlx")
+            with self.assertRaisesRegex(RuntimeError, r"sonic-forge\[clone\]"):
+                clone._require("torch")
+
+    def test_write_wav_is_16_bit_mono_and_clips(self):
+        import wave
+
+        import numpy as np
+
+        out = Path(tempfile.mkdtemp()) / "x.wav"
+        clone.write_wav(out, np.array([0.0, 0.5, 2.0, -2.0], dtype=np.float32), 24000)
+        with wave.open(str(out)) as w:
+            self.assertEqual((w.getnchannels(), w.getsampwidth(), w.getframerate(), w.getnframes()), (1, 2, 24000, 4))
+            frames = np.frombuffer(w.readframes(4), dtype="<i2")
+        self.assertEqual(frames.tolist(), [0, 16383, 32767, -32767])
 
 
 class NarrateWithClone(unittest.TestCase):
@@ -116,6 +168,8 @@ class NarrateWithClone(unittest.TestCase):
 
 @unittest.skipUnless(os.environ.get("SONIC_FORGE_SLOW") == "1", "set SONIC_FORGE_SLOW=1 to run the real model")
 class RealModel(unittest.TestCase):
+    """Runs whichever backend this machine picks (SONIC_FORGE_CLONE_BACKEND=mlx|torch to choose)."""
+
     def test_clones_a_voice_end_to_end(self):
         d = Path(tempfile.mkdtemp())
         sample = os.environ.get("SONIC_FORGE_SAMPLE")

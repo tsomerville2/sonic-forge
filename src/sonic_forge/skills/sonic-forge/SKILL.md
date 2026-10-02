@@ -76,14 +76,27 @@ sonic-forge speak --text "Welcome" --voice heart -o intro.wav --no-play
 
 ## Cloned voices
 
-Needs the clone extra (`pipx install "sonic-forge[kokoro,clone]"`). Only clone a voice whose owner agreed.
+Needs the clone extra: `pipx install "sonic-forge[kokoro,clone]"` (torch, CPU), or on Apple silicon
+`pipx install "sonic-forge[kokoro,clone-mlx]"` (the GPU, several times faster). Only clone a voice whose owner agreed.
 
 ```bash
 sonic-forge clone-prep sample.m4a me.wav      # 10-20 s of clear speech → clean 24 kHz reference
 sonic-forge narrate script.txt out.wav --engine chatterbox --voice me.wav --seed 7 --pause-mode explicit
 ```
-Chatterbox Turbo (MIT) runs on CPU: about 0.7 s of compute per second of speech on 16 cores (paragraphs run in
-parallel processes, `--jobs`), about 3.4 s on one 8-core Mac process. Output carries an inaudible watermark.
+Chatterbox Turbo (MIT). On the Apple GPU (mlx): about 0.6-0.9 s of work per second of speech in one process.
+On CPU (torch): about 0.7 s on 16 cores (paragraphs run in parallel processes, `--jobs`), about 3.4 s on one
+8-core Mac process. `SONIC_FORGE_CLONE_BACKEND=mlx|torch` forces a backend. Output carries an inaudible watermark.
+
+## Speech to text (Apple silicon)
+
+Needs the stt-mlx extra (`pipx install "sonic-forge[stt-mlx]"`). NVIDIA Parakeet on the GPU: a minute of speech in ~3 s.
+
+```bash
+sonic-forge transcribe memo.m4a                   # plain text, one sentence per line
+sonic-forge transcribe memo.m4a --json --words    # Whisper verbose_json: text, language, duration, segments, words
+```
+
+`sonic-forge doctor --json` says what an install can do (kokoro, cloning backend, transcription) without loading a model.
 
 ## Voice effects
 

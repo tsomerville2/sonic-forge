@@ -4,7 +4,8 @@ Local speech, narration with frame-accurate timings, and music made from code, i
 
 - **`narrate`**: a script becomes one WAV plus `timing.json`, which gives the start and end of every paragraph and pause. You cut visuals (Remotion, DaVinci, ffmpeg) to the real voice instead of guessing. It is seedable, so the same input and seed give the same WAV.
 - **`speak`**: text to speech with three engines: Kokoro-82M (local neural, any OS), Microsoft Edge neural voices (20+ languages) and macOS `say`.
-- **Cloned voices**: 10–20 seconds of someone talking, and `narrate` speaks any script in that voice, locally (Chatterbox Turbo, MIT).
+- **Cloned voices**: 10–20 seconds of someone talking, and `narrate` speaks any script in that voice, locally (Chatterbox Turbo, MIT), on the GPU on Apple silicon.
+- **Speech to text**: `transcribe` turns a recording into text with sentence and word times, as Whisper-style JSON (NVIDIA Parakeet on Apple silicon).
 - **Voice FX**: helmet, intercom, droid, ringmod, bitcrush and vocoder.
 - **Music**: bytebeat genre templates, a YAML song format, 27 bundled tracks, and sung songs via ACE-Step.
 - **Built for agents too**: `sonic-forge --skill` hands any coding agent its skill card, and it installs itself for Claude Code, Codex and `~/.agents` agents.
@@ -16,7 +17,10 @@ pipx install "sonic-forge[kokoro]"     # the CLI plus the Kokoro neural voice en
 pipx install sonic-forge               # CLI only: macOS say voices, music, FX
 pipx install edge-tts                  # optional: 20+ languages via Microsoft Edge voices
 pipx install "sonic-forge[kokoro,clone]"  # plus voice cloning (torch, about 2 GB)
+pipx install "sonic-forge[kokoro,clone-mlx,stt-mlx]"  # Apple silicon: cloning and transcription on the GPU
 ```
+
+`sonic-forge doctor` shows what an install can do (engines, the cloning backend, transcription).
 
 On Linux, install the CPU build of torch first so pip doesn't fetch CUDA wheels:
 `pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu`.
@@ -103,10 +107,23 @@ sonic-forge narrate script.txt narration.wav --engine chatterbox --voice me.wav 
 sonic-forge speak --text "Hello, it's me" --engine chatterbox --voice me.wav
 ```
 
-- **Engine:** [Chatterbox Turbo](https://github.com/resemble-ai/chatterbox) by Resemble AI (MIT). It runs locally on CPU, and its weights (about 1.5 GB) download once from Hugging Face. Every clip carries Resemble's inaudible Perth watermark.
+- **Engine:** [Chatterbox Turbo](https://github.com/resemble-ai/chatterbox) by Resemble AI (MIT), run locally. Its weights download once from Hugging Face. Every clip carries Resemble's inaudible Perth watermark.
+- **Two backends, one CLI:** with the `clone-mlx` extra on Apple silicon it runs on the GPU through [mlx-audio](https://github.com/Blaizzy/mlx-audio) (`mlx-community/chatterbox-turbo-fp16`, 2.8 GB). Everywhere else it is the PyTorch build on CPU (`clone` extra). `SONIC_FORGE_CLONE_BACKEND=mlx` or `torch` forces one. Pauses, `--seed`, levelling and the timing manifest behave the same on both. A seed gives the same audio every time on the same backend, but the two backends' audio differs.
 - **The reference:** 10–20 seconds of one person speaking clearly in a quiet room. `clone-prep` refuses anything under 5 seconds.
-- **Speed:** generation is autoregressive, so threads stop helping early, and `narrate` speaks paragraphs in parallel processes instead (`--jobs`, by default one per four cores, at most four). Measured on 16 cores with 4 processes: about 0.7 seconds of compute per second of speech. One process on an 8-core Mac: about 3.4.
+- **Speed:** on the GPU (M2 Max), one process speaks about as fast as it talks: 0.6 to 0.9 seconds of work per second of speech, plus about 11 seconds to load. On CPU, generation is autoregressive, so threads stop helping early, and `narrate` speaks paragraphs in parallel processes instead (`--jobs`, by default one per four cores, at most four; on the GPU, one). Measured on 16 cores with 4 processes: about 0.7 seconds of compute per second of speech. One process on an 8-core Mac: about 3.4.
 - **Consent:** only clone your own voice, or a voice whose owner has agreed.
+
+## Speech to text
+
+```bash
+sonic-forge transcribe memo.m4a                     # the text, one sentence per line
+sonic-forge transcribe memo.m4a --json --words      # Whisper verbose_json, with each word's times
+sonic-forge transcribe memo.m4a --json -o memo.json
+```
+
+- **Engine:** NVIDIA Parakeet TDT 0.6B v2 through [parakeet-mlx](https://github.com/senstella/parakeet-mlx), on the Apple silicon GPU (`stt-mlx` extra). Its weights (2.3 GB) download once. `--model mlx-community/parakeet-tdt-0.6b-v3` hears 25 European languages.
+- **The JSON** has the shape of OpenAI and Groq Whisper's `verbose_json`, so code written for hosted Whisper can switch to it: `{task, language, duration, text, model, segments: [{id, start, end, text}], words: [{word, start, end}]}`. Punctuation stays on its word.
+- **Speed (M2 Max):** a 65-second recording in about 2.8 seconds and a 120-second one in about 5.7, plus about 2 seconds to load the model.
 
 ## Voice effects
 
@@ -145,6 +162,13 @@ Every `sonic-forge` run silently installs or refreshes the card where an agent i
 - `~/.agents/skills/sonic-forge/` (pi, omo, opencode, goose)
 
 A copy you have edited is never overwritten. `SONIC_FORGE_NO_SKILLS=1` turns the silent install off.
+
+## What's new in 0.12
+
+- **Cloned voices on the Apple GPU.** `pipx install "sonic-forge[kokoro,clone-mlx,stt-mlx]"`, and `narrate --engine chatterbox` runs Chatterbox Turbo through mlx-audio instead of torch on CPU. The CLI and the output are unchanged, and every clip still carries the Perth watermark.
+- **`sonic-forge transcribe`**: speech to text with Parakeet on the GPU, as Whisper-style JSON with word times.
+- **`sonic-forge doctor [--json]`**: what this install can do, without loading a model.
+- **Fixes for fresh installs of the `clone` extra:** it pins `setuptools<81`, because the watermarker needs `pkg_resources`. It also keeps the reference audio float32 under numpy 2, which used to fail with "expected m1 and m2 to have the same dtype". A worker process that can't load the model now fails the run with the reason, instead of hanging while multiprocessing respawns it forever.
 
 ## Python
 

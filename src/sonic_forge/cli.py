@@ -39,6 +39,9 @@ def main(
     Voiceover for a video, with a timing manifest to cut visuals to:
       sonic-forge narrate script.txt out.wav --pause-mode explicit
 
+    Speech to text, Whisper-style JSON with word times (Apple silicon):
+      sonic-forge transcribe memo.m4a --json --words
+
     Hear a voice, list voices, make a music bed:
       sonic-forge speak --text "Hello there" --voice onyx
       sonic-forge voices --engine kokoro
@@ -1017,7 +1020,7 @@ def narrate_cmd(
     engine: Optional[str] = typer.Option(None, "--engine", "-e", help="Force engine: say / kokoro / edge / chatterbox (a cloned voice: --voice is then a reference WAV). Auto-picked if omitted."),
     phonics: Optional[str] = typer.Option(None, "--phonics", help="JSON file of word→pronunciation replacements applied before TTS. Optional."),
     seed: Optional[int] = typer.Option(None, "--seed", help="Seed pause-pool randomness (and a cloned voice's sampling) for reproducibility."),
-    jobs: Optional[int] = typer.Option(None, "--jobs", "-j", help="Cloned voices: paragraphs spoken side by side in this many processes. Default one per four cores, at most four."),
+    jobs: Optional[int] = typer.Option(None, "--jobs", "-j", help="Cloned voices: paragraphs spoken side by side in this many processes. Default one per four cores, at most four (on CPU); one on the GPU (mlx)."),
     fps: int = typer.Option(30, "--fps", help="Frame rate assumed for manifest total_frames."),
     no_manifest: bool = typer.Option(False, "--no-manifest", help="Skip the *.timing.json output."),
     sample_rate: int = typer.Option(24000, "--sample-rate", help="Output sample rate in Hz."),
@@ -1092,7 +1095,9 @@ def clone_prep_cmd(
     mono and keeps at most --max-seconds. Fails if under 5 s of sound remain.
     Only clone a voice you have the right to use: your own, or with the speaker's consent.
 
-    Then narrate with it (Chatterbox Turbo, MIT; output carries an inaudible watermark):
+    Then narrate with it (Chatterbox Turbo, MIT; output carries an inaudible watermark).
+    On Apple silicon with the clone-mlx extra it runs on the GPU; elsewhere torch on CPU
+    (SONIC_FORGE_CLONE_BACKEND=mlx|torch forces one):
       sonic-forge clone-prep phone-memo.m4a me.wav
       sonic-forge narrate script.txt narration.wav --engine chatterbox --voice me.wav
     """
@@ -1104,6 +1109,93 @@ def clone_prep_cmd(
         print(f"\n  {e}\n")
         raise typer.Exit(1)
     print(f"{output} ({seconds:.1f}s reference)")
+
+
+@app.command("transcribe")
+def transcribe_cmd(
+    audio: str = typer.Argument(..., help="A recording: any format ffmpeg reads (wav, m4a, mp3, webm…)."),
+    as_json: bool = typer.Option(False, "--json", help="Print Whisper-style verbose_json (text, language, duration, segments) instead of plain text."),
+    words: bool = typer.Option(False, "--words", help="With --json, also each word's start and end (for read-along and lining a reading up with a script)."),
+    model: Optional[str] = typer.Option(None, "--model", help="A parakeet-mlx model. Default mlx-community/parakeet-tdt-0.6b-v2 (English); parakeet-tdt-0.6b-v3 hears 25 European languages."),
+    output: Optional[str] = typer.Option(None, "-o", "--output", help="Write the result to this file instead of stdout."),
+) -> None:
+    """Speech to text on this Mac's GPU (NVIDIA Parakeet via parakeet-mlx).
+
+    Needs the stt-mlx extra (Apple silicon). About 3 s for a minute of speech on an M2 Max,
+    after a 2 s model load; the model (2.3 GB) downloads once from Hugging Face.
+
+    The text, sentence by sentence:
+      sonic-forge transcribe memo.m4a
+
+    The same JSON shape as OpenAI / Groq Whisper verbose_json, with word times:
+      sonic-forge transcribe memo.m4a --json --words
+      → {"task", "language", "duration", "text", "model",
+         "segments": [{"id", "start", "end", "text"}], "words": [{"word", "start", "end"}]}
+    """
+    import json
+
+    from sonic_forge.transcribe import transcribe
+
+    try:
+        result = transcribe(audio, words=words, model=model)
+    except (RuntimeError, ValueError) as e:
+        print(f"\n  {e}\n", file=sys.stderr)
+        raise typer.Exit(1)
+    if as_json:
+        text = json.dumps(result, ensure_ascii=False)
+    else:
+        text = "\n".join(s["text"] for s in result["segments"])
+    if output:
+        Path(output).write_text(text + "\n")
+    else:
+        print(text)
+
+
+@app.command("doctor")
+def doctor_cmd(
+    as_json: bool = typer.Option(False, "--json", help="Machine-readable: what this install can do."),
+) -> None:
+    """What this install can do, without loading any model (fast enough for a health check).
+
+      sonic-forge doctor
+      sonic-forge doctor --json
+      → {"version", "platform", "ffmpeg", "kokoro", "clone": {"backend", "ready"}, "transcribe": {"ready", "model"}}
+    """
+    import importlib.util
+    import json
+    import platform
+    import shutil
+
+    from sonic_forge import __version__
+    from sonic_forge import clone as clone_mod
+    from sonic_forge.transcribe import model_name
+
+    def has(mod: str) -> bool:
+        return importlib.util.find_spec(mod) is not None
+
+    try:
+        backend = clone_mod.backend()
+        ready = has("mlx_audio") if backend == "mlx" else has("chatterbox")
+    except ValueError:
+        backend, ready = None, False
+    apple = sys.platform == "darwin" and platform.machine() == "arm64"
+    info = {
+        "version": __version__,
+        "platform": f"{sys.platform}-{platform.machine()}",
+        "ffmpeg": bool(shutil.which("ffmpeg") and shutil.which("ffprobe")),
+        "kokoro": has("kokoro_onnx"),
+        "clone": {"backend": backend if ready else None, "ready": ready},
+        "transcribe": {"ready": apple and has("parakeet_mlx"), "model": model_name()},
+    }
+    if as_json:
+        print(json.dumps(info))
+        return
+    yes = lambda ok: "yes" if ok else "no"  # noqa: E731
+    print(f"sonic-forge {info['version']} on {info['platform']}")
+    print(f"  ffmpeg + ffprobe   {yes(info['ffmpeg'])}")
+    print(f"  kokoro voices      {yes(info['kokoro'])}" + ("" if info["kokoro"] else '   pip install "sonic-forge[kokoro]"'))
+    print(f"  cloned voices      {info['clone']['backend'] or 'no'}" + ("" if ready else ('   pip install "sonic-forge[clone-mlx]"' if apple else '   pip install "sonic-forge[clone]"')))
+    print(f"  transcribe         {yes(info['transcribe']['ready'])}" + ("" if info["transcribe"]["ready"] else ('   pip install "sonic-forge[stt-mlx]"' if apple else "   (Apple silicon only)")))
 
 
 @app.command("kokoro-prep")
