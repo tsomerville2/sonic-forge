@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sonic-forge"
-version = "0.10.1"
-description = "Local speech, narration with frame-accurate timings for video, and music made from code: Kokoro, Edge and macOS voices, voice FX, bytebeat."
+version = "0.11.0"
+description = "Local speech, narration with frame-accurate timings for video, and music made from code: Kokoro, Edge and macOS voices, cloned voices (Chatterbox), voice FX, bytebeat."
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = ["tts", "text-to-speech", "narration", "voiceover", "kokoro", "edge-tts", "remotion", "timing", "bytebeat", "music", "cli", "agent-skills"]
+keywords = ["tts", "text-to-speech", "narration", "voiceover", "kokoro", "edge-tts", "voice-cloning", "chatterbox", "remotion", "timing", "bytebeat", "music", "cli", "agent-skills"]
 classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
@@ -28,6 +28,8 @@ dependencies = [
 kokoro = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy"]
 tts = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy", "f5-tts-mlx"]
 robot = ["soundfile", "numpy"]
+# Voice cloning (Chatterbox Turbo). On Linux install CPU torch first, see sonic_forge/clone.py.
+clone = ["chatterbox-tts==0.1.7", "torch==2.6.0", "torchaudio==2.6.0"]
 all = ["kokoro-onnx", "onnxruntime", "soundfile", "numpy", "f5-tts-mlx"]
 
 [project.urls]

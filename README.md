@@ -4,6 +4,7 @@ Local speech, narration with frame-accurate timings, and music made from code, i
 
 - **`narrate`**: a script becomes one WAV plus `timing.json`, which gives the start and end of every paragraph and pause. You cut visuals (Remotion, DaVinci, ffmpeg) to the real voice instead of guessing. It is seedable, so the same input and seed give the same WAV.
 - **`speak`**: text to speech with three engines: Kokoro-82M (local neural, any OS), Microsoft Edge neural voices (20+ languages) and macOS `say`.
+- **Cloned voices**: 10–20 seconds of someone talking, and `narrate` speaks any script in that voice, locally (Chatterbox Turbo, MIT).
 - **Voice FX**: helmet, intercom, droid, ringmod, bitcrush and vocoder.
 - **Music**: bytebeat genre templates, a YAML song format, 27 bundled tracks, and sung songs via ACE-Step.
 - **Built for agents too**: `sonic-forge --skill` hands any coding agent its skill card, and it installs itself for Claude Code, Codex and `~/.agents` agents.
@@ -14,7 +15,11 @@ Local speech, narration with frame-accurate timings, and music made from code, i
 pipx install "sonic-forge[kokoro]"     # the CLI plus the Kokoro neural voice engine (recommended)
 pipx install sonic-forge               # CLI only: macOS say voices, music, FX
 pipx install edge-tts                  # optional: 20+ languages via Microsoft Edge voices
+pipx install "sonic-forge[kokoro,clone]"  # plus voice cloning (torch, about 2 GB)
 ```
+
+On Linux, install the CPU build of torch first so pip doesn't fetch CUDA wheels:
+`pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu`.
 
 `narrate` needs `ffmpeg` and `ffprobe` on PATH. Kokoro's weights (about 340 MB) download once, on first use, to `~/.starforge/models/kokoro`.
 
@@ -89,6 +94,19 @@ sonic-forge speak --text "Bonjour le monde" --lang french
 
 - **Kokoro short names:** `heart`, `bella`, `nova`, `sky` (female); `onyx`, `fenrir`, `adam`, `michael` (male); `emma`, `alice` (British female); `george`, `daniel` (British male). Full IDs look like `af_heart` and `am_fenrir`.
 - **Default engine:** with no engine, voice or language given, a Mac uses `say`. Every other system uses Kokoro.
+
+## Cloned voices
+
+```bash
+sonic-forge clone-prep phone-memo.m4a me.wav       # trim, level, 24 kHz mono, at most 20 s
+sonic-forge narrate script.txt narration.wav --engine chatterbox --voice me.wav --seed 7
+sonic-forge speak --text "Hello, it's me" --engine chatterbox --voice me.wav
+```
+
+- **Engine:** [Chatterbox Turbo](https://github.com/resemble-ai/chatterbox) by Resemble AI (MIT). It runs locally on CPU, and its weights (about 1.5 GB) download once from Hugging Face. Every clip carries Resemble's inaudible Perth watermark.
+- **The reference:** 10–20 seconds of one person speaking clearly in a quiet room. `clone-prep` refuses anything under 5 seconds.
+- **Speed:** generation is autoregressive, so threads stop helping early, and `narrate` speaks paragraphs in parallel processes instead (`--jobs`, by default one per four cores, at most four). Measured on 16 cores with 4 processes: about 0.7 seconds of compute per second of speech. One process on an 8-core Mac: about 3.4.
+- **Consent:** only clone your own voice, or a voice whose owner has agreed.
 
 ## Voice effects
 

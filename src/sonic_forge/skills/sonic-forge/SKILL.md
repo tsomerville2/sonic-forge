@@ -74,6 +74,17 @@ sonic-forge speak --text "Welcome" --voice heart -o intro.wav --no-play
 - Off macOS, a run with no engine, voice or language uses Kokoro. Passing `--engine kokoro` makes a script
   behave the same everywhere.
 
+## Cloned voices
+
+Needs the clone extra (`pipx install "sonic-forge[kokoro,clone]"`). Only clone a voice whose owner agreed.
+
+```bash
+sonic-forge clone-prep sample.m4a me.wav      # 10-20 s of clear speech → clean 24 kHz reference
+sonic-forge narrate script.txt out.wav --engine chatterbox --voice me.wav --seed 7 --pause-mode explicit
+```
+Chatterbox Turbo (MIT) runs on CPU: about 0.7 s of compute per second of speech on 16 cores (paragraphs run in
+parallel processes, `--jobs`), about 3.4 s on one 8-core Mac process. Output carries an inaudible watermark.
+
 ## Voice effects
 
 ```bash

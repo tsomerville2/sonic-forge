@@ -1,4 +1,4 @@
-"""TTS engine abstraction — macOS say, Kokoro-82M, Edge-TTS, with optional robot FX.
+"""TTS engine abstraction — macOS say, Kokoro-82M, Edge-TTS, cloned voices (Chatterbox), with optional robot FX.
 
 Usage:
     from sonic_forge.tts import speak
@@ -262,6 +262,11 @@ def resolve_voice(voice=None, engine=None, lang=None):
         return "kokoro", voice
 
     # 5. Engine explicitly set
+    if engine == "chatterbox":
+        # A cloned voice: `voice` is the path of the reference recording (see sonic_forge.clone).
+        if not voice:
+            raise ValueError("the chatterbox engine clones a voice: pass --voice path/to/reference.wav")
+        return "chatterbox", voice
     if engine == "kokoro":
         return "kokoro", voice or "af_heart"
     if engine == "edge":
@@ -283,9 +288,10 @@ def speak(text, engine=None, voice=None, lang=None, rate=None, speed=1.0,
 
     Args:
         text: Text to speak.
-        engine: "say", "kokoro", or "edge". Auto-detected if omitted.
+        engine: "say", "kokoro", "edge" or "chatterbox". Auto-detected if omitted.
         voice: Voice name — short ("onyx", "heart"), full ("af_heart"),
                edge ID ("te-IN-MohanNeural"), or gender ("male"/"female").
+               With engine="chatterbox", the path of a reference recording to clone.
         lang: Language name ("telugu", "hindi", "french", etc.).
               Auto-selects the best engine for that language.
         rate: Words per minute (macOS say only).
@@ -313,6 +319,9 @@ def speak(text, engine=None, voice=None, lang=None, rate=None, speed=1.0,
             _kokoro_to_wav(text, wav_path, voice=voice, speed=speed)
         elif engine == "edge":
             _edge_to_wav(text, wav_path, voice=voice)
+        elif engine == "chatterbox":
+            from sonic_forge.clone import synthesize
+            synthesize([text], voice, [wav_path], jobs=1, verbose=False)
         else:
             _say_to_wav(text, wav_path, voice=voice, rate=rate)
 
@@ -378,5 +387,8 @@ def generate_to_wav(text, wav_path, engine=None, voice=None, lang=None,
         _kokoro_to_wav(text, wav_path, voice=voice, speed=speed)
     elif engine == "edge":
         _edge_to_wav(text, wav_path, voice=voice)
+    elif engine == "chatterbox":
+        from sonic_forge.clone import synthesize
+        synthesize([text], voice, [wav_path], jobs=1, verbose=False)
     else:
         _say_to_wav(text, wav_path, voice=voice, rate=rate)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -1013,9 +1014,10 @@ def narrate_cmd(
     output: str = typer.Argument(..., help="Target WAV path. Manifest emitted alongside at OUTPUT.timing.json (unless --no-manifest)."),
     voice: Optional[str] = typer.Option(None, "--voice", "-v", help="Voice short name or full ID. Defaults: af_heart for kokoro, natural choice per lang otherwise."),
     lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Auto-pick engine + voice by language (telugu, hindi, english, french, ...)."),
-    engine: Optional[str] = typer.Option(None, "--engine", "-e", help="Force engine: say / kokoro / edge. Auto-picked if omitted."),
+    engine: Optional[str] = typer.Option(None, "--engine", "-e", help="Force engine: say / kokoro / edge / chatterbox (a cloned voice: --voice is then a reference WAV). Auto-picked if omitted."),
     phonics: Optional[str] = typer.Option(None, "--phonics", help="JSON file of word→pronunciation replacements applied before TTS. Optional."),
-    seed: Optional[int] = typer.Option(None, "--seed", help="Seed pause-pool randomness for reproducibility."),
+    seed: Optional[int] = typer.Option(None, "--seed", help="Seed pause-pool randomness (and a cloned voice's sampling) for reproducibility."),
+    jobs: Optional[int] = typer.Option(None, "--jobs", "-j", help="Cloned voices: paragraphs spoken side by side in this many processes. Default one per four cores, at most four."),
     fps: int = typer.Option(30, "--fps", help="Frame rate assumed for manifest total_frames."),
     no_manifest: bool = typer.Option(False, "--no-manifest", help="Skip the *.timing.json output."),
     sample_rate: int = typer.Option(24000, "--sample-rate", help="Output sample rate in Hz."),
@@ -1049,6 +1051,9 @@ def narrate_cmd(
     Telugu via edge-tts (Kokoro can't do Telugu):
       sonic-forge narrate script.txt narration.wav --lang telugu
 
+    In a cloned voice (needs the clone extra; prepare the reference with clone-prep):
+      sonic-forge narrate script.txt narration.wav --engine chatterbox --voice me.wav --seed 7
+
     From stdin:
       cat script.txt | sonic-forge narrate - narration.wav
     """
@@ -1068,10 +1073,37 @@ def narrate_cmd(
             write_manifest=not no_manifest,
             verbose=True,
             pause_mode=pause_mode,
+            jobs=jobs,
         )
     except (RuntimeError, ValueError) as e:
         print(f"\n  {e}\n")
         raise typer.Exit(1)
+
+
+@app.command("clone-prep")
+def clone_prep_cmd(
+    sample: str = typer.Argument(..., help="A recording of the voice to clone: any format ffmpeg reads (wav, m4a, mp3, webm…)."),
+    output: str = typer.Argument(..., help="The reference WAV to write (24 kHz mono)."),
+    max_seconds: float = typer.Option(20.0, "--max-seconds", help="Keep at most this much of the sample; 10-20 s clones best."),
+) -> None:
+    """Turn a raw voice sample into a clean reference for cloning.
+
+    Trims leading and trailing silence, normalises loudness to -18 LUFS, converts to 24 kHz
+    mono and keeps at most --max-seconds. Fails if under 5 s of sound remain.
+    Only clone a voice you have the right to use: your own, or with the speaker's consent.
+
+    Then narrate with it (Chatterbox Turbo, MIT; output carries an inaudible watermark):
+      sonic-forge clone-prep phone-memo.m4a me.wav
+      sonic-forge narrate script.txt narration.wav --engine chatterbox --voice me.wav
+    """
+    from sonic_forge.clone import prep_reference
+
+    try:
+        seconds = prep_reference(sample, output, max_seconds=max_seconds)
+    except (ValueError, subprocess.CalledProcessError) as e:
+        print(f"\n  {e}\n")
+        raise typer.Exit(1)
+    print(f"{output} ({seconds:.1f}s reference)")
 
 
 @app.command("kokoro-prep")

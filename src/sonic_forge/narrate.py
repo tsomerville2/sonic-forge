@@ -239,7 +239,8 @@ def narrate(input_path, output_path,
             sample_rate: int = DEFAULT_SAMPLE_RATE,
             write_manifest: bool = True,
             verbose: bool = True,
-            pause_mode: str = "legacy") -> Path:
+            pause_mode: str = "legacy",
+            jobs: Optional[int] = None) -> Path:
     """Produce a narration WAV + (optional) timing manifest JSON.
 
     Args:
@@ -247,7 +248,8 @@ def narrate(input_path, output_path,
         output_path: Target WAV path. Manifest written at `<output>.timing.json`
                      unless write_manifest is False.
         voice: Voice short name or full ID (e.g. "am_fenrir", "af_heart").
-        engine: "say", "kokoro", or "edge". Auto-detected if None.
+        engine: "say", "kokoro", "edge" or "chatterbox" (a cloned voice: `voice` is the
+            path of a reference recording). Auto-detected if None.
         lang: Language name; auto-picks engine + voice. Overrides voice defaults.
         phonics: Path to JSON dict of word→pronunciation replacements.
         seed: Seed pause-pool randomness for reproducibility.
@@ -259,6 +261,8 @@ def narrate(input_path, output_path,
             pauses collapse by max, so markers shorter than ~1.3s are swallowed;
             byte-identical to earlier releases) or "explicit" (a marker replaces
             the blank-line default for its gap).
+        jobs: Cloned voices only — paragraphs spoken side by side in this many processes
+            (default: one per four cores, at most four).
 
     Returns:
         Path to the produced WAV.
@@ -297,14 +301,25 @@ def narrate(input_path, output_path,
         manifest: list[dict] = []
         cumulative = 0.0
 
+        # A cloned voice is slow per call and scales with processes, so every paragraph is
+        # spoken up front in parallel; the loop below then only measures and assembles.
+        cloned: dict[int, Path] = {}
+        if resolved_engine == "chatterbox":
+            from sonic_forge.clone import synthesize
+            texts = [(i, val) for i, (kind, val) in enumerate(collapsed) if kind == "text"]
+            cloned = {i: tmpdir / f"raw_{i:03d}.wav" for i, _ in texts}
+            synthesize([t for _, t in texts], resolved_voice, [cloned[i] for i, _ in texts],
+                       jobs=jobs, seed=seed, verbose=verbose)
+
         for i, (kind, val) in enumerate(collapsed):
             if kind == "text":
                 raw_wav = tmpdir / f"raw_{i:03d}.wav"
                 norm_wav = tmpdir / f"seg_{i:03d}.wav"
-                _tts_paragraph(val, raw_wav,
-                               engine=resolved_engine,
-                               voice=resolved_voice,
-                               lang=None)
+                if i not in cloned:
+                    _tts_paragraph(val, raw_wav,
+                                   engine=resolved_engine,
+                                   voice=resolved_voice,
+                                   lang=None)
                 reencode(raw_wav, norm_wav, sample_rate=sample_rate)
                 dur = probe_duration(norm_wav)
                 manifest.append({
