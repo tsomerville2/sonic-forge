@@ -113,6 +113,30 @@ sonic-forge speak --text "Hello, it's me" --engine chatterbox --voice me.wav
 - **Speed:** on the GPU (M2 Max), one process speaks about as fast as it talks: 0.6 to 0.9 seconds of work per second of speech, plus about 11 seconds to load. On CPU, generation is autoregressive, so threads stop helping early, and `narrate` speaks paragraphs in parallel processes instead (`--jobs`, by default one per four cores, at most four; on the GPU, one). Measured on 16 cores with 4 processes: about 0.7 seconds of compute per second of speech. One process on an 8-core Mac: about 3.4.
 - **Consent:** only clone your own voice, or a voice whose owner has agreed.
 
+## Narration from clips (worker fleets)
+
+Long scripts in a cloned voice are slow on one machine. Speak the paragraphs on many machines, then assemble on one:
+
+```bash
+sonic-forge narrate script.txt --segments --seed 7 --pause-mode explicit   # the plan, as JSON
+sonic-forge clip para.txt clips/0003.wav --engine chatterbox --voice me.wav --seed 7 --index 3
+sonic-forge narrate script.txt narration.wav --from-clips clips --engine chatterbox --seed 7 --pause-mode explicit
+```
+
+- **The plan:** `--segments` prints `[{"kind": "text", "text": …, "index": k}, {"kind": "pause", "seconds": …}, …]`, the exact paragraphs and seeded pauses `narrate` would use, with phonics already applied. `index` counts paragraphs only.
+- **One paragraph:** `clip` speaks paragraph `k` exactly as `narrate` would inside the script: same engine and voice choice, and a cloned voice samples it with `seed + k`. Save it as `clips/k:04d.wav` (`0000.wav`, `0001.wav`, …). Pass `--phonics` only for raw paragraph text, not for text from `--segments`.
+- **Assembly:** `--from-clips` runs no speech model. It draws the same pauses, joins the clips, levels a cloned voice to a -4.5 dB peak once, and writes the same `timing.json`. Give it the same `--seed`, `--pause-mode`, `--phonics` and `--engine` as the plan. A missing or extra clip is an error naming the counts and the first missing file.
+- **Same result:** with the same clips, the WAV and manifest match a single-machine `narrate` byte for byte. Checked with Kokoro and with a cloned voice on the Apple GPU, each clip spoken in its own process. Every machine needs the same clone backend, since mlx and torch audio differ.
+- **From Python**, a worker keeps the model loaded between paragraphs:
+
+```python
+from sonic_forge.narrate import script_segments, speak_clip, narrate_from_clips
+for seg in script_segments(open("script.txt").read(), seed=7, pause_mode="explicit"):
+    if seg["kind"] == "text":
+        speak_clip(seg["text"], f"clips/{seg['index']:04d}.wav", engine="chatterbox", voice="me.wav", seed=7, index=seg["index"])
+narrate_from_clips("script.txt", "clips", "narration.wav", engine="chatterbox", seed=7, pause_mode="explicit")
+```
+
 ## Speech to text
 
 ```bash
@@ -162,6 +186,11 @@ Every `sonic-forge` run silently installs or refreshes the card where an agent i
 - `~/.agents/skills/sonic-forge/` (pi, omo, opencode, goose)
 
 A copy you have edited is never overwritten. `SONIC_FORGE_NO_SKILLS=1` turns the silent install off.
+
+## What's new in 0.13
+
+- **Narration from clips, for worker fleets.** `narrate --segments` prints the plan, `sonic-forge clip` speaks one paragraph as `narrate` would, and `narrate --from-clips DIR` assembles the clips with no speech model. The result matches a single-machine `narrate` byte for byte. In Python: `script_segments`, `speak_clip` and `narrate_from_clips`.
+- **A cloned voice stays loaded** between calls in one process, so a worker speaking paragraph after paragraph loads it once.
 
 ## What's new in 0.12
 

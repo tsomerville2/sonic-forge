@@ -87,6 +87,20 @@ Chatterbox Turbo (MIT). On the Apple GPU (mlx): about 0.6-0.9 s of work per seco
 On CPU (torch): about 0.7 s on 16 cores (paragraphs run in parallel processes, `--jobs`), about 3.4 s on one
 8-core Mac process. `SONIC_FORGE_CLONE_BACKEND=mlx|torch` forces a backend. Output carries an inaudible watermark.
 
+### Long scripts across many machines (worker fleets)
+
+```bash
+sonic-forge narrate script.txt --segments --seed 7 --pause-mode explicit    # plan JSON: text {text,index} / pause {seconds}
+sonic-forge clip para.txt clips/0003.wav --engine chatterbox --voice me.wav --seed 7 --index 3   # on any worker
+sonic-forge narrate script.txt out.wav --from-clips clips --engine chatterbox --seed 7 --pause-mode explicit
+```
+Paragraph `k` (counting paragraphs only) goes to `clips/k:04d.wav`. `clip` speaks it exactly as `narrate` would, and a cloned
+voice uses `seed + k`. `--from-clips` runs no TTS: same seeded pauses, one -4.5 dB levelling for a cloned voice, same
+`timing.json`, byte-identical to a one-machine `narrate`. Pass the same `--seed/--pause-mode/--phonics/--engine` to the plan
+and the assembly. Text from `--segments` already has phonics applied, so leave `--phonics` off `clip` for it. All workers
+must use the same clone backend (mlx and torch audio differ). Python: `from sonic_forge.narrate import script_segments,
+speak_clip, narrate_from_clips` (speak_clip keeps the model loaded between calls).
+
 ## Speech to text (Apple silicon)
 
 Needs the stt-mlx extra (`pipx install "sonic-forge[stt-mlx]"`). NVIDIA Parakeet on the GPU: a minute of speech in ~3 s.

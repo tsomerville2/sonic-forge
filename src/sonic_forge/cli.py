@@ -1014,7 +1014,7 @@ def beat_cmd(
 @app.command("narrate")
 def narrate_cmd(
     input_path: str = typer.Argument(..., help="Text file with paragraphs separated by blank lines. Supports \\[pause: label] and \\[pause: 1.2] markup. Use '-' for stdin."),
-    output: str = typer.Argument(..., help="Target WAV path. Manifest emitted alongside at OUTPUT.timing.json (unless --no-manifest)."),
+    output: Optional[str] = typer.Argument(None, help="Target WAV path. Manifest emitted alongside at OUTPUT.timing.json (unless --no-manifest). Not needed with --segments."),
     voice: Optional[str] = typer.Option(None, "--voice", "-v", help="Voice short name or full ID. Defaults: af_heart for kokoro, natural choice per lang otherwise."),
     lang: Optional[str] = typer.Option(None, "--lang", "-l", help="Auto-pick engine + voice by language (telugu, hindi, english, french, ...)."),
     engine: Optional[str] = typer.Option(None, "--engine", "-e", help="Force engine: say / kokoro / edge / chatterbox (a cloned voice: --voice is then a reference WAV). Auto-picked if omitted."),
@@ -1025,6 +1025,8 @@ def narrate_cmd(
     no_manifest: bool = typer.Option(False, "--no-manifest", help="Skip the *.timing.json output."),
     sample_rate: int = typer.Option(24000, "--sample-rate", help="Output sample rate in Hz."),
     pause_mode: str = typer.Option("legacy", "--pause-mode", help="explicit (recommended): a \\[pause: …] marker sets its gap, so short really is short. legacy (default, byte-identical to ≤0.9.0): every blank line also draws a medium pause (0.55–1.10s) and the longer one wins, so shorter markers are swallowed."),
+    from_clips: Optional[str] = typer.Option(None, "--from-clips", help="Assemble from paragraphs already spoken (by `sonic-forge clip`, e.g. on other machines): a folder of 0000.wav, 0001.wav, … one per paragraph. No TTS runs; pauses, levelling and the manifest match a plain narrate with the same --seed/--pause-mode/--phonics/--engine."),
+    segments: bool = typer.Option(False, "--segments", help="Print the plan as JSON (paragraphs with their index, and the seeded pauses) and exit. OUTPUT is not needed."),
 ) -> None:
     """Produce a long-form narration WAV + timing manifest.
 
@@ -1059,8 +1061,49 @@ def narrate_cmd(
 
     From stdin:
       cat script.txt | sonic-forge narrate - narration.wav
+
+    Worker fleets: speak paragraphs on many machines, assemble on one. --segments
+    prints the plan; paragraph k goes to k:04d.wav (0000.wav, 0001.wav, …):
+      sonic-forge narrate s.txt --segments --seed 7 --pause-mode explicit
+      sonic-forge clip p3.txt clips/0003.wav --voice onyx --seed 7 --index 3
+      sonic-forge narrate s.txt out.wav --from-clips clips --seed 7 \\
+        --pause-mode explicit
+    Same seed, pause mode, phonics and engine as a plain narrate → the same WAV and manifest.
     """
-    from sonic_forge.narrate import narrate as do_narrate
+    import json
+
+    from sonic_forge.narrate import narrate as do_narrate, narrate_from_clips, script_segments
+
+    if segments:
+        try:
+            plan = script_segments(sys.stdin.read() if input_path == "-" else Path(input_path).read_text(),
+                                   phonics=phonics, pause_mode=pause_mode, seed=seed)
+        except (OSError, ValueError) as e:
+            print(f"\n  {e}\n", file=sys.stderr)
+            raise typer.Exit(1)
+        print(json.dumps(plan, indent=2, ensure_ascii=False))
+        return
+    if not output:
+        print("\n  OUTPUT (the WAV to write) is required unless --segments is given.\n", file=sys.stderr)
+        raise typer.Exit(2)
+
+    if from_clips:
+        try:
+            narrate_from_clips(
+                input_path, from_clips, output,
+                engine=engine,
+                seed=seed,
+                pause_mode=pause_mode,
+                phonics=phonics,
+                fps=fps,
+                sample_rate=sample_rate,
+                write_manifest=not no_manifest,
+                verbose=True,
+            )
+        except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as e:
+            print(f"\n  {e}\n")
+            raise typer.Exit(1)
+        return
 
     try:
         do_narrate(
@@ -1081,6 +1124,44 @@ def narrate_cmd(
     except (RuntimeError, ValueError) as e:
         print(f"\n  {e}\n")
         raise typer.Exit(1)
+
+
+@app.command("clip")
+def clip_cmd(
+    text_file: str = typer.Argument(..., help="A file holding ONE paragraph to speak, or '-' for stdin."),
+    output: str = typer.Argument(..., help="The clip to write: mono 16-bit WAV. For narrate --from-clips, name it k:04d.wav (0000.wav, 0001.wav, …)."),
+    voice: Optional[str] = typer.Option(None, "--voice", "-v", help="Voice short name or full ID; with --engine chatterbox, the reference WAV."),
+    engine: Optional[str] = typer.Option(None, "--engine", "-e", help="say / kokoro / edge / chatterbox, resolved as narrate does. Auto-picked if omitted."),
+    seed: Optional[int] = typer.Option(None, "--seed", help="The narration's seed. A cloned voice samples this paragraph with seed + index, as narrate does."),
+    index: int = typer.Option(0, "--index", "-i", help="Which paragraph of the script this is (0-based, counting paragraphs only, as --segments numbers them)."),
+    phonics: Optional[str] = typer.Option(None, "--phonics", help="JSON file of word→pronunciation replacements. Leave it off for text taken from --segments, which already has them applied."),
+    sample_rate: int = typer.Option(24000, "--sample-rate", help="Output sample rate in Hz."),
+) -> None:
+    """Speak one paragraph exactly as narrate would speak it inside a script.
+
+    For worker fleets: each machine speaks some paragraphs, one machine assembles
+    them with narrate --from-clips. A cloned voice is not levelled here; the
+    assembly levels the whole narration once, as narrate does.
+
+    Paragraph 3 of a script, in a Kokoro voice:
+      sonic-forge clip p3.txt clips/0003.wav --voice onyx --seed 7 --index 3
+
+    In a cloned voice, from stdin:
+      echo "Hi." | sonic-forge clip - 0000.wav -e chatterbox -v me.wav --seed 7
+
+    Python workers keep the model loaded between paragraphs:
+      from sonic_forge.narrate import speak_clip
+    """
+    from sonic_forge.narrate import speak_clip
+
+    try:
+        text = sys.stdin.read() if text_file == "-" else Path(text_file).read_text()
+        out = speak_clip(text, output, engine=engine, voice=voice, seed=seed, index=index,
+                         phonics=phonics, sample_rate=sample_rate)
+    except (OSError, RuntimeError, ValueError, subprocess.CalledProcessError) as e:
+        print(f"\n  {e}\n")
+        raise typer.Exit(1)
+    print(out)
 
 
 @app.command("clone-prep")

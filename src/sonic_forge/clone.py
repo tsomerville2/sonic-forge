@@ -54,6 +54,7 @@ MLX_MODEL = "mlx-community/chatterbox-turbo-fp16"
 _model = None  # one per worker process
 _backend = None  # the backend that process loaded
 _watermarker = None  # mlx backend: Resemble's Perth, applied to each clip as torch's Chatterbox does
+_loaded = None  # (reference, backend, threads) the in-process model was prepared with, so it is reused
 
 
 def _probe(path: Path) -> float:
@@ -166,7 +167,8 @@ def _init_pool_worker(reference: str, threads: int, which: str) -> None:
 
 
 def _init_worker(reference: str, threads: int, which: str = "torch") -> None:
-    global _model, _backend, _watermarker
+    global _model, _backend, _watermarker, _loaded
+    _loaded = None
     _backend = which
     if which == "mlx":
         os.environ.setdefault("TQDM_DISABLE", "1")  # mlx-audio draws a progress bar per sentence
@@ -178,6 +180,7 @@ def _init_worker(reference: str, threads: int, which: str = "torch") -> None:
         _model = load_model(os.environ.get("SONIC_FORGE_MLX_CLONE_MODEL", MLX_MODEL))
         _model.prepare_conditionals(reference)
         _watermarker = _perth()
+        _loaded = (reference, which, threads)
         return
     import torch
     from chatterbox.tts_turbo import ChatterboxTurboTTS
@@ -186,6 +189,7 @@ def _init_worker(reference: str, threads: int, which: str = "torch") -> None:
     torch.set_num_threads(threads)
     _model = ChatterboxTurboTTS.from_pretrained(device=_device())
     _model.prepare_conditionals(reference, exaggeration=0.0)
+    _loaded = (reference, which, threads)
 
 
 def _float32_reference() -> None:
@@ -306,10 +310,14 @@ def synthesize(texts: list[str], reference, out_paths: list, jobs: Optional[int]
         print(f"  clone: Chatterbox Turbo on {'the GPU (mlx)' if which == 'mlx' else 'CPU (torch)'}, "
               f"{len(work)} line(s), {jobs} process(es)", flush=True)
     if jobs == 1:
-        started = time.monotonic()
-        _init_worker(reference, threads, which)
-        if verbose:
-            print(f"  clone: model ready in {time.monotonic() - started:.1f}s", flush=True)
+        # In this process the model loads once and stays warm: a worker speaking clip after clip
+        # (narrate.speak_clip) pays the load only on its first call. Seeds are set per line, so a
+        # warm model speaks exactly what a freshly loaded one would.
+        if _model is None or _loaded != (reference, which, threads):
+            started = time.monotonic()
+            _init_worker(reference, threads, which)
+            if verbose:
+                print(f"  clone: model ready in {time.monotonic() - started:.1f}s", flush=True)
         for index, seconds, took in map(_speak, work):
             durations[index] = seconds
             if verbose:

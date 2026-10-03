@@ -17,6 +17,12 @@ Segment markup:
 Usage:
     from sonic_forge.narrate import narrate
     narrate("input.txt", "output.wav", voice="am_fenrir", seed=608)
+
+Worker fleets (paragraphs spoken on many machines, assembled on one, byte-identical to narrate):
+    from sonic_forge.narrate import script_segments, speak_clip, narrate_from_clips
+    plan = script_segments(text, seed=7, pause_mode="explicit")        # text {text,index} / pause {seconds}
+    speak_clip(plan[0]["text"], "clips/0000.wav", engine="chatterbox", voice="me.wav", seed=7, index=0)
+    narrate_from_clips("input.txt", "clips", "output.wav", engine="chatterbox", seed=7, pause_mode="explicit")
 """
 
 from __future__ import annotations
@@ -229,6 +235,139 @@ def _resolve_engine_voice(engine: Optional[str], voice: Optional[str],
     return resolved_engine, resolved_voice
 
 
+def _check_pause_mode(pause_mode: str) -> None:
+    if pause_mode not in ("legacy", "explicit"):
+        raise ValueError(f"pause_mode must be 'legacy' or 'explicit', got {pause_mode!r}")
+
+
+def _read_script(input_path) -> str:
+    """The script text: a file, or stdin when input_path is "-"."""
+    if str(input_path) == "-":
+        return sys.stdin.read()
+    return Path(input_path).read_text()
+
+
+def script_segments(text: str, phonics=None, pause_mode: str = "legacy",
+                    seed: Optional[int] = None) -> list[dict]:
+    """The exact plan `narrate` speaks: what is said, and the pauses between, in order.
+
+    Phonics are applied to the whole text first, the text is split with
+    `random.Random(seed)` (so the pause draws are the very ones narrate makes), adjacent
+    pauses collapse to the longest, and leading/trailing pauses are dropped.
+
+    Returns a list of
+        {"kind": "text", "text": paragraph, "index": k}   k = 0, 1, 2 … over text segments only
+        {"kind": "pause", "seconds": duration}
+
+    A worker fleet speaks text segment k to `k:04d.wav` (see `speak_clip`) and one machine
+    puts them together with `narrate_from_clips`.
+    """
+    _check_pause_mode(pause_mode)
+    rng = random.Random(seed)
+    phonicsed = phonics_apply(text, Path(phonics) if phonics else None)
+
+    # Collapse adjacent pauses (keep max) and trim leading/trailing pauses
+    collapsed: list[tuple[str, object]] = []
+    for kind, val in split_script(phonicsed, rng, pause_mode):
+        if kind == "pause" and collapsed and collapsed[-1][0] == "pause":
+            collapsed[-1] = ("pause", max(collapsed[-1][1], val))
+        else:
+            collapsed.append((kind, val))
+    while collapsed and collapsed[0][0] == "pause":
+        collapsed.pop(0)
+    while collapsed and collapsed[-1][0] == "pause":
+        collapsed.pop()
+
+    segments: list[dict] = []
+    spoken = 0
+    for kind, val in collapsed:
+        if kind == "text":
+            segments.append({"kind": "text", "text": val, "index": spoken})
+            spoken += 1
+        else:
+            segments.append({"kind": "pause", "seconds": val})
+    return segments
+
+
+def clip_name(index: int) -> str:
+    """File name of text segment `index` in a clips folder: 0000.wav, 0001.wav, …"""
+    return f"{index:04d}.wav"
+
+
+def _assemble(segments: list[dict], speech_for, output_path: Path, tmpdir: Path, *,
+              level: bool, pause_mode: str, fps: int, sample_rate: int,
+              write_manifest: bool, verbose: bool) -> Path:
+    """Re-encode each spoken paragraph, make each silence, concatenate, level, write the manifest.
+
+    `speech_for(i, segment)` returns the raw WAV of text segment `segment` (position `i` in the
+    plan). narrate and narrate_from_clips both end here, so their output can't drift apart.
+    """
+    manifest_path = output_path.with_suffix(".timing.json")
+    files: list[str] = []
+    manifest: list[dict] = []
+    cumulative = 0.0
+
+    for i, seg in enumerate(segments):
+        if seg["kind"] == "text":
+            val = seg["text"]
+            norm_wav = tmpdir / f"seg_{i:03d}.wav"
+            reencode(speech_for(i, seg), norm_wav, sample_rate=sample_rate)
+            dur = probe_duration(norm_wav)
+            manifest.append({
+                "kind": "text",
+                "index": len(manifest),
+                "start": round(cumulative, 3),
+                "end": round(cumulative + dur, 3),
+                "duration": round(dur, 3),
+                "text": val,
+            })
+            cumulative += dur
+            files.append(str(norm_wav))
+            if verbose:
+                head = val.replace("\n", " ")[:70]
+                print(f"  [{cumulative-dur:6.2f}–{cumulative:6.2f}s] {head!r}")
+        else:
+            val = seg["seconds"]
+            sil = tmpdir / f"sil_{i:03d}_{val:.3f}.wav"
+            make_silence(val, sil, sample_rate=sample_rate)
+            manifest.append({
+                "kind": "pause",
+                "index": len(manifest),
+                "start": round(cumulative, 3),
+                "end": round(cumulative + val, 3),
+                "duration": round(val, 3),
+            })
+            cumulative += val
+            files.append(str(sil))
+            if verbose:
+                print(f"  [{cumulative-val:6.2f}–{cumulative:6.2f}s] pause {val:.2f}s")
+
+    concat_wavs(files, output_path, sample_rate=sample_rate)
+    if level:
+        # Cloned speech comes out quiet (peaks near -15 dB); one linear gain to a -4.5 dB peak
+        # puts it level with Kokoro without touching timing or dynamics.
+        from sonic_forge.clone import peak_normalize
+        peak_normalize(output_path, target_db=-4.5, sample_rate=sample_rate)
+    total = probe_duration(output_path)
+
+    if write_manifest:
+        manifest_out = {
+            "total_duration": round(total, 3),
+            "fps": fps,
+            "total_frames": int(total * fps),
+            "pause_mode": pause_mode,
+            "segments": manifest,
+        }
+        manifest_path.write_text(json.dumps(manifest_out, indent=2))
+
+    if verbose:
+        print(f"\nFinal: {output_path} ({total:.2f}s, {int(total*fps)} frames)")
+        if write_manifest:
+            print(f"Timing: {manifest_path}")
+
+    return output_path
+
+
 def narrate(input_path, output_path,
             voice: Optional[str] = None,
             engine: Optional[str] = None,
@@ -267,112 +406,126 @@ def narrate(input_path, output_path,
     Returns:
         Path to the produced WAV.
     """
-    if pause_mode not in ("legacy", "explicit"):
-        raise ValueError(f"pause_mode must be 'legacy' or 'explicit', got {pause_mode!r}")
-    rng = random.Random(seed)
+    _check_pause_mode(pause_mode)
     output_path = Path(output_path)
-    manifest_path = output_path.with_suffix(".timing.json")
-
-    if str(input_path) == "-":
-        raw = sys.stdin.read()
-    else:
-        raw = Path(input_path).read_text()
-
-    phonics_path = Path(phonics) if phonics else None
-    phonicsed = phonics_apply(raw, phonics_path)
-
+    raw = _read_script(input_path)
     resolved_engine, resolved_voice = _resolve_engine_voice(engine, voice, lang)
+    segments = script_segments(raw, phonics=phonics, pause_mode=pause_mode, seed=seed)
 
     tmpdir = Path(tempfile.mkdtemp(prefix="narrate_"))
     try:
-        # Collapse adjacent pauses (keep max) and trim leading/trailing pauses
-        collapsed: list[tuple[str, object]] = []
-        for kind, val in split_script(phonicsed, rng, pause_mode):
-            if kind == "pause" and collapsed and collapsed[-1][0] == "pause":
-                collapsed[-1] = ("pause", max(collapsed[-1][1], val))
-            else:
-                collapsed.append((kind, val))
-        while collapsed and collapsed[0][0] == "pause":
-            collapsed.pop(0)
-        while collapsed and collapsed[-1][0] == "pause":
-            collapsed.pop()
-
-        files: list[str] = []
-        manifest: list[dict] = []
-        cumulative = 0.0
-
         # A cloned voice is slow per call and scales with processes, so every paragraph is
-        # spoken up front in parallel; the loop below then only measures and assembles.
+        # spoken up front in parallel; assembly then only measures and joins. Text segment k
+        # is spoken with seed + k, exactly as speak_clip(..., seed=seed, index=k) speaks it.
         cloned: dict[int, Path] = {}
         if resolved_engine == "chatterbox":
             from sonic_forge.clone import synthesize
-            texts = [(i, val) for i, (kind, val) in enumerate(collapsed) if kind == "text"]
+            texts = [(i, seg["text"]) for i, seg in enumerate(segments) if seg["kind"] == "text"]
             cloned = {i: tmpdir / f"raw_{i:03d}.wav" for i, _ in texts}
             synthesize([t for _, t in texts], resolved_voice, [cloned[i] for i, _ in texts],
                        jobs=jobs, seed=seed, verbose=verbose)
 
-        for i, (kind, val) in enumerate(collapsed):
-            if kind == "text":
-                raw_wav = tmpdir / f"raw_{i:03d}.wav"
-                norm_wav = tmpdir / f"seg_{i:03d}.wav"
-                if i not in cloned:
-                    _tts_paragraph(val, raw_wav,
-                                   engine=resolved_engine,
-                                   voice=resolved_voice,
-                                   lang=None)
-                reencode(raw_wav, norm_wav, sample_rate=sample_rate)
-                dur = probe_duration(norm_wav)
-                manifest.append({
-                    "kind": "text",
-                    "index": len(manifest),
-                    "start": round(cumulative, 3),
-                    "end": round(cumulative + dur, 3),
-                    "duration": round(dur, 3),
-                    "text": val,
-                })
-                cumulative += dur
-                files.append(str(norm_wav))
-                if verbose:
-                    head = val.replace("\n", " ")[:70]
-                    print(f"  [{cumulative-dur:6.2f}–{cumulative:6.2f}s] {head!r}")
-            else:
-                sil = tmpdir / f"sil_{i:03d}_{val:.3f}.wav"
-                make_silence(val, sil, sample_rate=sample_rate)
-                manifest.append({
-                    "kind": "pause",
-                    "index": len(manifest),
-                    "start": round(cumulative, 3),
-                    "end": round(cumulative + val, 3),
-                    "duration": round(val, 3),
-                })
-                cumulative += val
-                files.append(str(sil))
-                if verbose:
-                    print(f"  [{cumulative-val:6.2f}–{cumulative:6.2f}s] pause {val:.2f}s")
+        def speech_for(i: int, seg: dict) -> Path:
+            if i in cloned:
+                return cloned[i]
+            raw_wav = tmpdir / f"raw_{i:03d}.wav"
+            _tts_paragraph(seg["text"], raw_wav, engine=resolved_engine,
+                           voice=resolved_voice, lang=None)
+            return raw_wav
 
-        concat_wavs(files, output_path, sample_rate=sample_rate)
+        return _assemble(segments, speech_for, output_path, tmpdir,
+                         level=resolved_engine == "chatterbox", pause_mode=pause_mode,
+                         fps=fps, sample_rate=sample_rate,
+                         write_manifest=write_manifest, verbose=verbose)
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def speak_clip(text, out_path, engine=None, voice=None, seed=None, index=0,
+               phonics=None, sample_rate=DEFAULT_SAMPLE_RATE) -> Path:
+    """Speak ONE paragraph exactly as `narrate` speaks text segment `index` of a script.
+
+    For worker fleets: each machine speaks some paragraphs to `clip_name(index)`, and one
+    machine assembles them with `narrate_from_clips`. Same engine/voice resolution as narrate;
+    a cloned voice (engine="chatterbox", voice = reference WAV) is sampled with seed + index,
+    the seed narrate gives that paragraph, and is NOT levelled here (narrate_from_clips levels
+    the whole narration once, as narrate does). The clip is mono pcm_s16le at sample_rate.
+
+    `phonics` is applied to `text`. Text taken from `script_segments(..., phonics=…)` already
+    has it applied; pass phonics=None then. Models stay loaded between calls in one process
+    (Kokoro and Chatterbox are each loaded once), so a worker can call this in a loop.
+    """
+    text = phonics_apply(str(text), Path(phonics) if phonics else None).strip()
+    if not text:
+        raise ValueError("nothing to speak: the clip text is empty")
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    resolved_engine, resolved_voice = _resolve_engine_voice(engine, voice, None)
+
+    tmpdir = Path(tempfile.mkdtemp(prefix="clip_"))
+    try:
+        raw_wav = tmpdir / "raw.wav"
         if resolved_engine == "chatterbox":
-            # Cloned speech comes out quiet (peaks near -15 dB); one linear gain to a -4.5 dB peak
-            # puts it level with Kokoro without touching timing or dynamics.
-            from sonic_forge.clone import peak_normalize
-            peak_normalize(output_path, target_db=-4.5, sample_rate=sample_rate)
-        total = probe_duration(output_path)
+            from sonic_forge.clone import synthesize
+            synthesize([text], resolved_voice, [raw_wav], jobs=1,
+                       seed=None if seed is None else seed + index, verbose=False)
+        else:
+            _tts_paragraph(text, raw_wav, engine=resolved_engine,
+                           voice=resolved_voice, lang=None)
+        reencode(raw_wav, out_path, sample_rate=sample_rate)
+        return out_path
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
-        if write_manifest:
-            manifest_out = {
-                "total_duration": round(total, 3),
-                "fps": fps,
-                "total_frames": int(total * fps),
-                "pause_mode": pause_mode,
-                "segments": manifest,
-            }
-            manifest_path.write_text(json.dumps(manifest_out, indent=2))
 
-        if verbose:
-            print(f"\nFinal: {output_path} ({total:.2f}s, {int(total*fps)} frames)")
-            if write_manifest:
-                print(f"Timing: {manifest_path}")
+def narrate_from_clips(input_path, clips_dir, output_path,
+                       engine: Optional[str] = None,
+                       seed: Optional[int] = None,
+                       pause_mode: str = "legacy",
+                       phonics: Optional[str] = None,
+                       fps: int = DEFAULT_FPS,
+                       sample_rate: int = DEFAULT_SAMPLE_RATE,
+                       write_manifest: bool = True,
+                       verbose: bool = True) -> Path:
+    """Assemble a narration from paragraphs spoken elsewhere — no TTS here, only ffmpeg.
 
-        return output_path
+    `clips_dir` holds 0000.wav, 0001.wav, … one per text segment of
+    script_segments(script, phonics, pause_mode, seed), in order (see speak_clip). The pauses
+    are the same seeded draws narrate makes, clips and silences are encoded and joined the
+    same way, and engine="chatterbox" levels the result to a -4.5 dB peak as narrate does, so
+    with the same clips the WAV and `<output>.timing.json` match narrate's byte for byte.
+
+    Raises ValueError naming expected and found counts when clips are missing or extra.
+    """
+    _check_pause_mode(pause_mode)
+    output_path = Path(output_path)
+    clips_dir = Path(clips_dir)
+    segments = script_segments(_read_script(input_path), phonics=phonics,
+                               pause_mode=pause_mode, seed=seed)
+    expected = [clip_name(s["index"]) for s in segments if s["kind"] == "text"]
+    if not clips_dir.is_dir():
+        raise ValueError(f"clips folder not found: {clips_dir}")
+    found = sorted(p.name for p in clips_dir.iterdir()
+                   if p.is_file() and re.fullmatch(r"\d+\.wav", p.name))
+    missing = [n for n in expected if n not in set(found)]
+    extra = [n for n in found if n not in set(expected)]
+    if missing or extra:
+        detail = []
+        if missing:
+            detail.append(f"first missing: {clips_dir / missing[0]}")
+        if extra:
+            detail.append(f"unexpected: {extra[0]}" + (f" (+{len(extra) - 1} more)" if len(extra) > 1 else ""))
+        raise ValueError(f"the script has {len(expected)} paragraph(s), so {clips_dir} should hold "
+                         f"{len(expected)} clip(s) ({expected[0] if expected else 'none'}"
+                         f"{' … ' + expected[-1] if len(expected) > 1 else ''}), found {len(found)}; "
+                         + "; ".join(detail))
+
+    tmpdir = Path(tempfile.mkdtemp(prefix="narrate_clips_"))
+    try:
+        return _assemble(segments, lambda i, seg: clips_dir / clip_name(seg["index"]),
+                         output_path, tmpdir,
+                         level=engine == "chatterbox", pause_mode=pause_mode,
+                         fps=fps, sample_rate=sample_rate,
+                         write_manifest=write_manifest, verbose=verbose)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
