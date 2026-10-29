@@ -85,8 +85,19 @@ def _data_path(subdir: str, filename: str) -> str:
 
 
 def _check_chuck() -> bool:
-    """Check if ChucK is installed."""
-    return shutil.which("chuck") is not None
+    """Check if ChucK is installed. Auto-install via brew if missing on macOS."""
+    if shutil.which("chuck"):
+        return True
+    # Auto-install on macOS
+    if sys.platform == "darwin" and shutil.which("brew"):
+        print("  ChucK not found — installing via brew...")
+        try:
+            subprocess.run(["brew", "install", "chuck"],
+                           capture_output=True, timeout=120)
+            return shutil.which("chuck") is not None
+        except Exception:
+            pass
+    return False
 
 
 def _get_user_songs() -> list[tuple]:
